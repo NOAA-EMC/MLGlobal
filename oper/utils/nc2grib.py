@@ -58,7 +58,7 @@ class Netcdf2Grib:
         yield grib_message
 
     #def save_grib2(self, dates, forecasts, outdir):
-    def save_grib2(self, start_datetime, forecasts, gefs_member, outdir):
+    def save_grib2(self, start_datetime, forecasts, outdir, g2prefix):
         """
         Convert netCDF file to GRIB2 format file.
             Args:
@@ -85,7 +85,7 @@ class Netcdf2Grib:
             forecasts['total_precipitation_cumsum'] = forecasts['total_precipitation_6hr'].cumsum(axis=0)
 
         #filename = os.path.join(outdir, "forecast_to_grib2.nc")
-        filename = os.path.join(outdir, f"forecast_to_grib2_{gefs_member}.nc")
+        filename = os.path.join(outdir, f"forecast_to_grib2_{g2prefix}.nc")
         forecasts.to_netcdf(filename)
 
         # Load cubes from netCDF file
@@ -108,7 +108,7 @@ class Netcdf2Grib:
             print(f"Processing for time {date.strftime('%Y-%m-%d %H:00:00')}")
             hrs = int((date - forecast_starttime).total_seconds() // 3600)
             #outfile = os.path.join(outdir, f'graphcastgfs.t{cycle:02d}z.pgrb2.0p25.f{hrs:03d}')
-            outfile = os.path.join(outdir, f'mlgefs{gefs_member}.t{cycle:02d}z.pgrb2.0p25.f{hrs:03d}')
+            outfile = os.path.join(outdir, f'{g2prefix}.t{cycle:02d}z.pgrb2.0p25.f{hrs:03d}')
             print(outfile)
 
             for cube in sorted(cubes, key=lambda cube: cube.name()):

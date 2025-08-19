@@ -45,7 +45,7 @@ def get_job_id(command):
     return job_id
 
 
-def submit_job_wcoss2(member, param, model_id, curr_datetime, prev_datetime):
+def submit_job_wcoss2(member, param, model_id, curr_datetime, prev_datetime, packagedir):
     ymd=curr_datetime[:8]
     cyc=curr_datetime[8:]
 
@@ -71,15 +71,16 @@ def submit_job_wcoss2(member, param, model_id, curr_datetime, prev_datetime):
     #num_pressure_levels=13
     #forecast_length=64
     model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
-    DATAROOT=/lfs/h2/emc/ptmp/linlin.cui
+    DATAROOT=/lfs/h2/emc/ptmp/$USER
+    PACKAGEDIR=(packagedir} #/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble
 
-    cd /lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble
+    cd {PACKAGEDIR}
 
     # get input data
     python3 gen_gefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/mlgefs.{ymd}/{cyc} -d $DATAROOT/mlgefs.{ymd}/{cyc}
     
     #get forecasts
-    python3 run_graphcast_ens.py -i $DATAROOT/mlgefs.{ymd}/{cyc}/source-ge{member}_date-{curr_datetime}_res-0.25_levels-13_steps-2.nc -w $model_weights -m "{member}" -c {param} -l 64 -p 13 -o $DATAROOT/mlgefs.{ymd}/{cyc} -u no -k yes 
+    python3 run_graphcast_ens.py -i $DATAROOT/mlgefs.{ymd}/{cyc}/source-ge{member}_date-{curr_datetime}_res-0.25_levels-13_steps-2.nc -w $model_weights -m "{member}" -g "{g2prefix} -c {param} -l 64 -p 13 -o $DATAROOT/mlgefs.{ymd}/{cyc} -u no -k yes 
     """
 
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".pbs", delete=False) as tmpfile:
@@ -109,6 +110,16 @@ def submit_job_wcoss2(member, param, model_id, curr_datetime, prev_datetime):
 
 if __name__ == '__main__':
 
+    #Get current forecast cycle
+    cycles = [0, 6, 12, 18]
+    #now = datetime.datetime(2025, 8, 15, 19, 16)
+    now = None
+    curr_datetime = get_closest_cycle(now=now, cycles=cycles)
+    prev_datetime = curr_datetime - datetime.timedelta(hours=6)
+    print(f'curr_datetime: {curr_datetime}')
+    print(f'prev_datetime: {prev_datetime}')
+
+    #for MLGEFS
     #hostname = socket.gethostname()
     #if hostname.startswith('ufe'):
     #    param_path = '/scratch3/NCEPDEV/nems/Linlin.Cui/Tests/MLGEFSv1.0/oper/graphcast_gefs_params'
@@ -121,20 +132,23 @@ if __name__ == '__main__':
     with open('model_weights.json', 'r') as file:
         models = json.load(file)
 
-    #Get current forecast cycle
-    cycles = [0, 6, 12, 18]
-    #now = datetime.datetime(2025, 8, 15, 19, 16)
-    now = None
-    curr_datetime = get_closest_cycle(now=now, cycles=cycles)
-    prev_datetime = curr_datetime - datetime.timedelta(hours=6)
-    print(f'curr_datetime: {curr_datetime}')
-    print(f'prev_datetime: {prev_datetime}')
-
     for key, values in models.items():
         if key == '0':
             member = f'c{int(key):02d}'
         else:
             member = f'p{int(key):02d}'
 
+        g2prefix = "mlge"+{member}
+
         param = f'{param_path}/{values.get("params")}'
-        submit_job_wcoss2(member, param, key, curr_datetime.strftime("%Y%m%d%H"), prev_datetime.strftime("%Y%m%d%H"))
+        submit_job_wcoss2(member, g2prefix, param, key, curr_datetime.strftime("%Y%m%d%H"), prev_datetime.strftime("%Y%m%d%H"))
+
+    #for MLGFS
+    #param_path='/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights'
+    #param = f'{param_path}/{values.get("params")}'
+    #case_name = "mlgfs"
+    #g2prefix = "mlgfs"
+    #submit_job_wcoss2(case_name, g2prefix, param, key, curr_datetime.strftime("%Y%m%d%H"), prev_datetime.strftime("%Y%m%d%H"))
+
+
+

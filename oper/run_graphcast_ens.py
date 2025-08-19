@@ -29,18 +29,19 @@ from graphcast import rollout
 
 
 class GraphCastModel:
-    def __init__(self, pretrained_model_path, gdas_data_path, gefs_member, config_file, output_dir=None, num_pressure_levels=13, forecast_length=40):
+    def __init__(self, pretrained_model_path, gdas_data_path, case_name, g2prefix, config_file, output_dir=None, num_pressure_levels=13, forecast_length=40):
         self.pretrained_model_path = pretrained_model_path
         self.gdas_data_path = gdas_data_path
         self.forecast_length = forecast_length
         self.num_pressure_levels = num_pressure_levels
-        self.gefs_member = gefs_member
+        self.case_name = case_name
+        self.g2prefix = gg2prefix
         self.config_file_path = config_file
         
         if output_dir is None:
-            self.output_dir = os.path.join(os.getcwd(), f"forecasts_{str(self.num_pressure_levels)}_levels_{self.gefs_member}_model_{int(gefs_member[1:])}")  # Use current directory if not specified
+            self.output_dir = os.getcwd()
         else:
-            self.output_dir = os.path.join(output_dir, f"forecasts_{str(self.num_pressure_levels)}_levels_{self.gefs_member}_model_{int(gefs_member[1:])}")
+            self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         
         self.params = None
@@ -204,10 +205,10 @@ class GraphCastModel:
         from utils.grib2io import Netcdf2Grib
 
         converter = Netcdf2Grib(self.dates[0][1])
-        converter.save_grib2(ds, self.gefs_member, self.output_dir)
+        converter.save_grib2(ds, self.output_dir, self.g2prefix)
 
         # Call and save forecasts in grib2
-        converter.save_grib2(forecasts, self.gefs_member, self.output_dir)
+        converter.save_grib2(forecasts, self.output_dir, self.g2prefix)
 
         #else:
         #    raise ValueError(f"Method {self.method} is not supported. Choose either 'iris' or 'grib2io'!")
@@ -269,7 +270,8 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", help="input file path (including file name)", required=True)
     parser.add_argument("-w", "--weights", help="parent directory of the graphcast params and stats", required=True)
     parser.add_argument("-l", "--length", help="length of forecast (6-hourly), an integer number in range [1, 40]", required=True)
-    parser.add_argument("-m", "--member", help="gefs member [c00, p01, ..., p30]", required=True)
+    parser.add_argument("-m", "--case_name", help="mlgfs, or mlgefs member [c00, p01, ..., p30]", required=True)
+    parser.add_argument("-g", "--g2prefix", help="mlgfs, or mlgefs member [mlgec00, mlgep01, ..., mlgep30]", required=True)
     parser.add_argument("-c", "--config", help="GC weight member file", required=True)
     parser.add_argument("-o", "--output", help="output directory", default=None)
     parser.add_argument("-p", "--pressure", help="number of pressure levels", default=13)

@@ -56,7 +56,7 @@ class Netcdf2Grib:
 
         return msg
 
-    def save_grib2(self, xarray_ds, gefs_member, outdir):
+    def save_grib2(self, xarray_ds, outdir, g2prefix):
 
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
@@ -81,7 +81,7 @@ class Netcdf2Grib:
             # Set output GRIB2 file.
             cycle = self.start_date.hour
             lead = int(time.dt.total_seconds()//3600)
-            outfile = os.path.join(outdir, f"mlgefs{gefs_member}.t{cycle:02d}z.pgrb2.0p25.f{lead:03d}")
+            outfile = os.path.join(outdir, f"{g2prefix}.t{cycle:02d}z.pgrb2.0p25.f{lead:03d}")
 
             # Delete the old file.
             if os.path.isfile(outfile):
@@ -139,12 +139,12 @@ if __name__ == "__main__":
     
     start_date = pd.to_datetime("2025-07-30 06:00:00")
     ds = xr.open_dataset("forecasts_levels-13_steps-64.nc")
-    gefs_member = "c00"
+    g2prefix = "mlgec00"
 
     t0 = time()
-    outdir = "./forecasts_levels-13"
+    outdir = "./."
     os.makedirs(outdir, exist_ok=True)
     converter = Netcdf2Grib(start_date)
-    converter.save_grib2(ds, gefs_member, outdir)
+    converter.save_grib2(ds, outdir, g2prefix)
 
     print(f"It took {(time()-t0)/60} mins")

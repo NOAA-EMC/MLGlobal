@@ -52,8 +52,8 @@ else
    export COMINgfs=$DATAROOT/mlgefs.$PDY
    pertmember=`echo $pert | cut -c2-3`
    weight=$(expr $pertmember + 0)
-   export ensmember=forecasts_13_levels_{ensemble_member}_model_$weight
-   export fileprefix=mlgefs$pert
+   export ensmember=""
+   export fileprefix=mlge$pert
    export modelname="M"$(echo "$pert" | tr '[:lower:]' '[:upper:]')
 fi
 #model history files
