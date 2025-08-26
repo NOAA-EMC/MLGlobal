@@ -67,8 +67,6 @@ class ICDownloader:
 
         self.s3 = self.init_s3_client() if self.download_source == "s3" else None
 
-        self.DOWNLOAD_METHODS = {"s3": self.s3bucket, "local": self.localarchive}
-
     def get_s3_specs(self, ymd, hh, file_format):
 
         if self.mode == "gefs":
@@ -156,6 +154,7 @@ class ICDownloader:
         tuple[str, str]
             A tuple containing the local path prefix and the local file format.
         """
+        # TODO: elevate the hard-coded paths to class constructor (or above)
         if self.mode == "gefs":
             local_prefix = f"/lfs/h2/emc/ptmp/jun.wang/gefs.{ymd}/{hh}"
             local_file_format = f"{self.member}.t{hh}z.{file_format}"
@@ -218,19 +217,12 @@ class ICDownloader:
 
             return s3
 
-    def s3bucket(self, ymd, hh, local_directory):
-
-        for file_format in self.file_formats:
-            s3_prefix, s3_file_format = self.get_s3_specs(ymd, hh, file_format)
-            self.get_data_from_s3(s3_prefix, s3_file_format, local_directory)
-
-    def localarchive(self, ymd, hh, local_directory):
-
-        for file_format in self.file_formats:
-            local_prefix, local_file_format = self.get_local_specs(ymd, hh, file_format)
-            self.get_data_from_local(local_prefix, local_file_format, local_directory)
-
     def download(self, loop_interval=6):
+
+        _SPECS_MAP = {"s3": self.get_s3_specs, "local": self.get_local_specs}
+        _GET_DATA_MAP = {"s3": self.get_data_from_s3, "local": self.get_data_from_local}
+
+        interval_dt = timedelta(hours=loop_interval)
 
         # Loop through the intervals
         current_datetime = self.start_datetime
@@ -244,9 +236,12 @@ class ICDownloader:
             # Create the local directory if it doesn't exist
             os.makedirs(local_directory, exist_ok=True)
 
-            self.DOWNLOAD_METHODS[self.download_source](ymd, hh, local_directory)
+            # Loop over file formats and download data
+            for file_format in self.file_formats:
+                prefix, fformat = _SPECS_MAP[self.download_source](ymd, hh, file_format)
+                _GET_DATA_MAP[self.download_source](prefix, fformat, local_directory)
 
             # Move to the next interval
-            current_datetime += timedelta(hours=loop_interval)
+            current_datetime += interval_dt
 
         print("Download completed.")
