@@ -1,5 +1,5 @@
 # Global EAGLE ensemble
-This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is an ensemble GraphCast tuned on GDAS, ERA5 and HRES with GDAS as input. Thirty-one [model weights](https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/index.html#EAGLE_ensemble/model_weights/) were saved during training process. This repo contains scripts to run an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.   
+This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is an ensemble GraphCast tuned on GDAS, ERA5 and HRES with GDAS as input. Thirty-one [model weights](https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/index.html#EAGLE_ensemble/model_weights/) were saved during training process. This repo contains scripts to run an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -35,7 +35,7 @@ pip install -U "jax[cuda12]"
 ```bash
 aws s3 cp --recursive s3://noaa-nws-graphcastgfs-pds/EAGLE_ensemble/model_weights model_weights --no-sign-request
 ```
-There are three subdirectories:  
+There are three subdirectories:
 `ens_weights/`: contains 31 model weights.
 `params/`: contains original graphcast model weight from Google DeepMind, which is used for initializing model.
 `stats/`: contains statistic files.

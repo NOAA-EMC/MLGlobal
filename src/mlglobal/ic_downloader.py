@@ -1,23 +1,25 @@
-import os
 import glob
+import os
 from datetime import datetime, timedelta
+
 
 class FileFormats:
     def __init__(self, mode, num_levels=13):
 
-        FILE_FORMATS = {
-            "gfs": self.gfs_file_formats,
-            "gefs": self.gefs_file_formats
-        }
+        FILE_FORMATS = {"gfs": self.gfs_file_formats, "gefs": self.gefs_file_formats}
         self.num_levels = num_levels
         self.file_formats = FILE_FORMATS[mode]()
 
     def gfs_file_formats(self):
-         # List of file formats to download
+        # List of file formats to download
         if self.num_levels == 13:
-           file_formats = ['pgrb2.0p25.f000', 'pgrb2.0p25.f006'] # , '0p25.f001'
+            file_formats = ["pgrb2.0p25.f000", "pgrb2.0p25.f006"]  # , '0p25.f001'
         else:
-            file_formats = ['pgrb2.0p25.f000', 'pgrb2b.0p25.f000', 'pgrb2.0p25.f006'] # , '0p25.f001'
+            file_formats = [
+                "pgrb2.0p25.f000",
+                "pgrb2b.0p25.f000",
+                "pgrb2.0p25.f006",
+            ]  # , '0p25.f001'
 
         return file_formats
 
@@ -25,9 +27,13 @@ class FileFormats:
 
         # List of file formats to download
         if self.num_levels == 13:
-            file_formats = ['pgrb2.0p25.f000', 'pgrb2s.0p25.f000'] # , '0p25.f001'
+            file_formats = ["pgrb2.0p25.f000", "pgrb2s.0p25.f000"]  # , '0p25.f001'
         else:
-            file_formats = ['pgrb2.0p25.f000', 'pgrb2b.0p25.f000', 'pgrb2.0p25.f006'] # , '0p25.f001'
+            file_formats = [
+                "pgrb2.0p25.f000",
+                "pgrb2b.0p25.f000",
+                "pgrb2.0p25.f006",
+            ]  # , '0p25.f001'
 
         return file_formats
 
@@ -44,7 +50,7 @@ class ICDownloader:
         download_source="s3",
         download_directory=None,
         bucket_name=None,
-        root_directory=None
+        root_directory=None,
     ):
         self.mode = mode
         self.start_datetime = start_datetime
@@ -61,16 +67,15 @@ class ICDownloader:
 
         self.s3 = self.init_s3_client() if self.download_source == "s3" else None
 
-        self.DOWNLOAD_METHODS = {
-            "s3": self.s3bucket,
-            "local": self.localarchive
-        }
+        self.DOWNLOAD_METHODS = {"s3": self.s3bucket, "local": self.localarchive}
 
     def get_s3_specs(self, ymd, hh, file_format):
 
         if self.mode == "gefs":
 
-            s3_prefix = f"Linlin.Cui/gefs_wcoss2/{self.root_directory}.{ymd}/{hh}/atmos/"
+            s3_prefix = (
+                f"Linlin.Cui/gefs_wcoss2/{self.root_directory}.{ymd}/{hh}/atmos/"
+            )
             s3_file_format = f"{self.member}.t{hh}z.{file_format}"
 
         elif self.mode == "gfs":
@@ -98,8 +103,9 @@ class ICDownloader:
 
         return s3_prefix, s3_file_format
 
-    def get_data_from_s3(self, path_prefix: str,
-                        file_format: str, local_directory: str) -> None:
+    def get_data_from_s3(
+        self, path_prefix: str, file_format: str, local_directory: str
+    ) -> None:
         """
         Downloads files with a specific format from an S3 bucket to a local directory.
 
@@ -123,10 +129,12 @@ class ICDownloader:
         """
 
         objects = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=path_prefix)
-        for obj in objects.get('Contents', []):
-            obj_key = obj['Key']
-            if obj_key.endswith(f'{file_format}'):
-                local_file_path = os.path.join(local_directory, os.path.basename(obj_key))
+        for obj in objects.get("Contents", []):
+            obj_key = obj["Key"]
+            if obj_key.endswith(f"{file_format}"):
+                local_file_path = os.path.join(
+                    local_directory, os.path.basename(obj_key)
+                )
                 self.s3.download_file(self.bucket_name, obj_key, local_file_path)
                 print(f"Downloaded {obj_key} to {local_file_path}")
 
@@ -157,15 +165,18 @@ class ICDownloader:
 
         return local_prefix, local_file_format
 
-    def get_data_from_local(self, path_prefix: str,
-                        file_format: str, local_directory: str) -> None:
+    def get_data_from_local(
+        self, path_prefix: str, file_format: str, local_directory: str
+    ) -> None:
 
         file_objects = glob.glob(f"{path_prefix}/*/*/*")
         for obj_key in file_objects:
-            if obj_key.endswith(f'{file_format}'):
+            if obj_key.endswith(f"{file_format}"):
 
                 # Define the local file path
-                local_file_path = os.path.join(local_directory, os.path.basename(obj_key))
+                local_file_path = os.path.join(
+                    local_directory, os.path.basename(obj_key)
+                )
 
                 # Move data to the local path
                 try:
@@ -181,22 +192,29 @@ class ICDownloader:
 
         try:
             import boto3
-            from botocore.config import Config
             from botocore import UNSIGNED
+            from botocore.config import Config
         except ImportError as ee:
-            raise ImportError("boto3 and botocore are required for S3 operations.") from ee
+            raise ImportError(
+                "boto3 and botocore are required for S3 operations."
+            ) from ee
 
         try:
             s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        except Exception as e1:
+        except Exception:
             try:
-                profile_name = os.environ.get('AWS_PROFILE', 'default')
+                profile_name = os.environ.get("AWS_PROFILE", "default")
                 session = boto3.Session(profile_name=profile_name)
                 current_credentials = session.get_credentials().get_frozen_credentials()
-                s3 = session.client("s3", aws_access_key_id=current_credentials.access_key,
-                                    aws_secret_access_key=current_credentials.secret_key)
+                s3 = session.client(
+                    "s3",
+                    aws_access_key_id=current_credentials.access_key,
+                    aws_secret_access_key=current_credentials.secret_key,
+                )
             except Exception as e2:
-                raise RuntimeError("Failed to create S3 client with both unsigned and profile methods.") from e2
+                raise RuntimeError(
+                    "Failed to create S3 client with both unsigned and profile methods."
+                ) from e2
 
             return s3
 
