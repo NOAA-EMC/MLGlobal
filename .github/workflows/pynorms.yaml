@@ -1,0 +1,17 @@
+name: pynorms
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  check_norms:
+    runs-on: ubuntu-latest
+    name: Check Python coding norms
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install (upgrade) python dependencies (pycodestyle)
+        run: |
+          pip install --upgrade pip
+      - uses: actions/checkout@v4
+      - uses: pre-commit/action@v3.0.1
