@@ -26,10 +26,18 @@ def main():
 
     def _common_args(inparser, dict_in):
         inparser.add_argument(
-            "--start_date", help="Start datetime", type=str, metavar="YYYYMMDDHH", required=True
+            "--start_date",
+            help="Start datetime",
+            type=str,
+            metavar="YYYYMMDDHH",
+            required=True,
         )
         inparser.add_argument(
-            "--end_date", help="End datetime", type=str, metavar="YYYYMMDDHH", required=True
+            "--end_date",
+            help="End datetime",
+            type=str,
+            metavar="YYYYMMDDHH",
+            required=True,
         )
         inparser.add_argument(
             "--levels",
