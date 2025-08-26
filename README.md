@@ -1,5 +1,5 @@
 # Global EAGLE ensemble
-This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is an ensemble GraphCast tuned on GDAS, ERA5 and HRES with GDAS as input. Thirty-one [model weights](https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/index.html#EAGLE_ensemble/model_weights/) were saved during training process. This repo contains scripts to run an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.
+This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is an ensemble GraphCast tuned on GDAS, ERA5 and HRES with GDAS as input. Thirty-one [model weights](https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/index.html#EAGLE_ensemble/model_weights/) were saved during training process. This repository contains scripts to run an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -10,9 +10,9 @@ This project is part of Experimental AI Global and Limited-area Ensemble project
 
 ## Overview
 
-The National Centers for Environmental Prediction (NCEP) provides GEFS data that can be used for ensemble weather prediction and analysis. Currently, this dataset is not publicly avaiable. If you are interested in getting the data, please contact Jun Wang[Jun.Wang@noaa.gov](mailto:Jun.Wang@noaa.gov).
+The National Centers for Environmental Prediction (NCEP) provides GEFS data that can be used for ensemble weather prediction and analysis. Currently, this dataset is not publicly available. If you are interested in getting the data, please contact Jun Wang[Jun.Wang@noaa.gov](mailto:Jun.Wang@noaa.gov).
 
-## Installation
+## Installation (with conda)
 
 Creating an environment from an environment.yml file:
 
@@ -28,6 +28,31 @@ conda activate graphcast
 If you would like to run on GPU, you'll need to update cuda-enabled jax:
 ```bash
 pip install -U "jax[cuda12]"
+```
+
+## Installation (with venv)
+
+Creating an environment with the dependencies of this project from `pyproject.toml`:
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install .
+```
+
+To install this package as editable
+```bash
+pip install -e .
+```
+
+To install the development dependencies such as testing, code-coverage, linters and formatters, etc.
+```bash
+pip install -e .[dev]
+```
+Note: on macOS, you may need to use `pip install -e ."[dev]"
+
+To install with GPU support
+```bash
+pip install -e .[gpu]
 ```
 
 ## Usage
