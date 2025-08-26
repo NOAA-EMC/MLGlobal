@@ -26,10 +26,10 @@ def main():
 
     def _common_args(inparser, dict_in):
         inparser.add_argument(
-            "--start_date", help="Start datetime", type=str, required=True
+            "--start_date", help="Start datetime", type=str, metavar="YYYYMMDDHH", required=True
         )
         inparser.add_argument(
-            "--end_date", help="End datetime", type=str, required=True
+            "--end_date", help="End datetime", type=str, metavar="YYYYMMDDHH", required=True
         )
         inparser.add_argument(
             "--levels",
@@ -43,7 +43,7 @@ def main():
             "--source",
             help="Data source",
             type=str,
-            choices=["s3", "nomads", "local"],
+            choices=["s3", "local"],
             default="s3",
             required=False,
         )
@@ -89,8 +89,8 @@ def main():
 
     downloader = ICDownloader(
         mode=args.mode,
-        start_datetime=datetime.fromisoformat(args.start_date),
-        end_datetime=datetime.fromisoformat(args.end_date),
+        start_datetime=datetime.strptime(args.start_date, "%Y%m%d%H"),
+        end_datetime=datetime.strptime(args.end_date, "%Y%m%d%H"),
         member=None if args.mode == "gfs" else args.member,
         download_source=args.source,
         download_directory=args.target,

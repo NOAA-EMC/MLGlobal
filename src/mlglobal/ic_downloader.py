@@ -67,6 +67,41 @@ class ICDownloader:
 
         self.s3 = self.init_s3_client() if self.download_source == "s3" else None
 
+    @staticmethod
+    def init_s3_client():
+
+        try:
+            import boto3
+            from botocore import UNSIGNED
+            from botocore.config import Config
+        except ImportError as ee:
+            raise ImportError(
+                "boto3 and botocore are required for S3 operations."
+            ) from ee
+
+        try:
+            # Try to create S3 client using profile method
+            profile_name = os.environ.get("AWS_PROFILE", "default")
+            session = boto3.Session(profile_name=profile_name)
+            current_credentials = session.get_credentials().get_frozen_credentials()
+            s3 = session.client(
+                "s3",
+                aws_access_key_id=current_credentials.access_key,
+                aws_secret_access_key=current_credentials.secret_key,
+            )
+        except Exception as e1:
+            print(f"Failed to create S3 client with profile method: {e1}")
+            try:
+                # Try to create S3 client using unsigned method
+                s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+            except Exception as e2:
+                print(f"Failed to create S3 client with unsigned method: {e2}")
+                raise RuntimeError(
+                    "Failed to create S3 client with unsigned method."
+                ) from e2
+
+        return s3
+
     def get_s3_specs(self, ymd, hh, file_format):
 
         if self.mode == "gefs":
@@ -74,7 +109,7 @@ class ICDownloader:
             s3_prefix = (
                 f"Linlin.Cui/gefs_wcoss2/{self.root_directory}.{ymd}/{hh}/atmos/"
             )
-            s3_file_format = f"{self.member}.t{hh}z.{file_format}"
+            s3_file_format = f"{self.member:02d}.t{hh}z.{file_format}"
 
         elif self.mode == "gfs":
 
@@ -133,8 +168,11 @@ class ICDownloader:
                 local_file_path = os.path.join(
                     local_directory, os.path.basename(obj_key)
                 )
-                self.s3.download_file(self.bucket_name, obj_key, local_file_path)
-                print(f"Downloaded {obj_key} to {local_file_path}")
+                if not os.path.exists(local_file_path):
+                    self.s3.download_file(self.bucket_name, obj_key, local_file_path)
+                    print(f"Downloaded {obj_key} to {local_file_path}")
+                else:
+                    print(f"File {local_file_path} already exists, skipping download.")
 
     def get_local_specs(self, ymd: str, hh: str, file_format: str) -> tuple[str, str]:
         """
@@ -186,37 +224,6 @@ class ICDownloader:
 
         return
 
-    @staticmethod
-    def init_s3_client():
-
-        try:
-            import boto3
-            from botocore import UNSIGNED
-            from botocore.config import Config
-        except ImportError as ee:
-            raise ImportError(
-                "boto3 and botocore are required for S3 operations."
-            ) from ee
-
-        try:
-            s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-        except Exception:
-            try:
-                profile_name = os.environ.get("AWS_PROFILE", "default")
-                session = boto3.Session(profile_name=profile_name)
-                current_credentials = session.get_credentials().get_frozen_credentials()
-                s3 = session.client(
-                    "s3",
-                    aws_access_key_id=current_credentials.access_key,
-                    aws_secret_access_key=current_credentials.secret_key,
-                )
-            except Exception as e2:
-                raise RuntimeError(
-                    "Failed to create S3 client with both unsigned and profile methods."
-                ) from e2
-
-            return s3
-
     def download(self, loop_interval=6):
 
         _SPECS_MAP = {"s3": self.get_s3_specs, "local": self.get_local_specs}
@@ -231,7 +238,7 @@ class ICDownloader:
             hh = current_datetime.strftime("%H")
 
             # Define the local directory path where the file will be saved
-            local_directory = os.path.join(self.local_base_directory, ymd, hh)
+            local_directory = os.path.join(self.download_directory, ymd, hh)
 
             # Create the local directory if it doesn't exist
             os.makedirs(local_directory, exist_ok=True)
