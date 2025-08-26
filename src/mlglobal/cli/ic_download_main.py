@@ -21,11 +21,7 @@ def main():
     parser = argparse.ArgumentParser(description="Download IC data for GFS or GEFS")
 
     subparsers = parser.add_subparsers(
-        dest="mode",
-        help="System to download IC data for",
-        type=str,
-        choices=["gfs", "gefs"],
-        required=True,
+        dest="mode", help="System to download IC data for GFS or GEFS", required=True
     )
 
     def _common_args(inparser, dict_in):
