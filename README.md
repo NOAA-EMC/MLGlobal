@@ -1,5 +1,5 @@
-# Global EAGLE ensemble
-This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is an ensemble GraphCast tuned on GDAS, ERA5 and HRES with GDAS as input. Thirty-one [model weights](https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/index.html#EAGLE_ensemble/model_weights/) were saved during training process. This repository contains scripts to run an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.
+# Global EAGLE Deterministic (solo) and Ensemble
+This project is part of Experimental AI Global and Limited-area Ensemble project (EAGLE), which is based on Google DeepMind GraphCast fine-tuned on GDAS, ERA5 and HRES with inputs from NCEP NWP forecast models. This repository contains scripts to run 1) MLGFS: fine-tuned GraphCast with GFS as input, and 2) MLGEFS: an ensemble-based cascaded version of the GraphCast weather model initialized with GEFSv12.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -10,7 +10,7 @@ This project is part of Experimental AI Global and Limited-area Ensemble project
 
 ## Overview
 
-The National Centers for Environmental Prediction (NCEP) provides GEFS data that can be used for ensemble weather prediction and analysis. Currently, this dataset is not publicly available. If you are interested in getting the data, please contact Jun Wang[Jun.Wang@noaa.gov](mailto:Jun.Wang@noaa.gov).
+The National Centers for Environmental Prediction (NCEP) provides GFS/GEFS data that can be used for global weather prediction and analysis. Currently, the operational GEFSv12 model state fields are not archived due to large amount of data volume.
 
 ## Installation (with conda)
 
