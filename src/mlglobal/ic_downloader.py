@@ -195,15 +195,18 @@ class ICDownloader:
         """
         # TODO: elevate the hard-coded paths to class constructor (or above)
         if self.mode == "gefs":
-            gefs_com_dir = "/lfs/h2/emc/ptmp/jun.wang"
+            gefs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"  # For testing on Acorn
+            gefs_com_dir = "/lfs/h2/emc/ptmp/jun.wang"  # NCO does not mirror all of GEFS data to dev in RT
             gefs_com_dir = "/lfs/h1/ops/prod/com/gefs/v12.3"
-            local_prefix = f"{gefs_com_dir}/gefs.{ymd}/{hh}"
-            local_file_format = f"{self.member}.t{hh}z.{file_format}"
+            fprefix = file_format.split('.')[0]
+            local_prefix = f"{gefs_com_dir}/gefs.{ymd}/{hh}/atmos/{fprefix}p25"
+            local_file_format = f"{self.member:02d}.t{hh}z.{file_format}"
 
         elif self.mode == "gfs":
 
+            # TODO: elevate the hard-coded paths to constructor
+            gfs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"  # For testing on Acorn
             gfs_com_dir = "/lfs/h1/ops/prod/com/gfs/v16.3"
-            gfs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"
             if file_format == "pgrb2.0p25.f006":
                 # get prefix for precip from the previous cycle
                 # Convert ymd and hh to datetime object
