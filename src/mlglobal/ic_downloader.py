@@ -1,5 +1,6 @@
 import glob
 import os
+import shutil
 from datetime import datetime, timedelta
 
 
@@ -194,11 +195,35 @@ class ICDownloader:
         """
         # TODO: elevate the hard-coded paths to class constructor (or above)
         if self.mode == "gefs":
-            local_prefix = f"/lfs/h2/emc/ptmp/jun.wang/gefs.{ymd}/{hh}"
+            gefs_com_dir = "/lfs/h2/emc/ptmp/jun.wang"
+            gefs_com_dir = "/lfs/h1/ops/prod/com/gefs/v12.3"
+            local_prefix = f"{gefs_com_dir}/gefs.{ymd}/{hh}"
             local_file_format = f"{self.member}.t{hh}z.{file_format}"
+
         elif self.mode == "gfs":
-            local_prefix = f"/lfs/h1/ops/prod/com/gfs/v16.3/gfs.{ymd}/{hh}/00/atmos"
-            local_file_format = f"gfs.t{hh}z.{file_format}"
+
+            gfs_com_dir = "/lfs/h1/ops/prod/com/gfs/v16.3"
+            gfs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"
+            if file_format == "pgrb2.0p25.f006":
+                # get prefix for precip from the previous cycle
+                # Convert ymd and hh to datetime object
+                datetime_obj = datetime.strptime(ymd + hh, "%Y%m%d%H")
+
+                # Get the datetime 6 hours before
+                datetime_before = datetime_obj - timedelta(hours=6)
+
+                # Get the date string and time string from datetime objects
+                ymd_precip = datetime_before.strftime("%Y%m%d")
+                hh_precip = datetime_before.strftime("%H")
+
+                # Construct the S3 prefix for the directory
+                local_prefix = f"{gfs_com_dir}/gfs.{ymd_precip}/{hh_precip}/atmos"
+                local_file_format = f"gfs.t{hh_precip}z.{file_format}"
+
+            else:
+
+                local_prefix = f"{gfs_com_dir}/gfs.{ymd}/{hh}/atmos"
+                local_file_format = f"gfs.t{hh}z.{file_format}"
 
         return local_prefix, local_file_format
 
@@ -206,7 +231,7 @@ class ICDownloader:
         self, path_prefix: str, file_format: str, local_directory: str
     ) -> None:
 
-        file_objects = glob.glob(f"{path_prefix}/*/*/*")
+        file_objects = glob.glob(f"{path_prefix}/*")
         for obj_key in file_objects:
             if obj_key.endswith(f"{file_format}"):
 
@@ -215,12 +240,12 @@ class ICDownloader:
                     local_directory, os.path.basename(obj_key)
                 )
 
-                # Move data to the local path
+                # Copy data to the local path
                 try:
-                    os.symlink(obj_key, local_file_path)
-                    print(f"Symbolic link created: {obj_key} -> {local_directory}")
-                except OSError as e:
-                    raise OSError(f"Error creating symbolic link: {e}")
+                    shutil.copy2(obj_key, local_file_path)
+                    print(f"Copied:  {obj_key} -> {local_directory}")
+                except OSError:
+                    raise OSError(f"Unable to copy {obj_key} to {local_directory}")
 
         return
 
