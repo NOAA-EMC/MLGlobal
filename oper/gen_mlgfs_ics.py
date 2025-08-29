@@ -24,9 +24,7 @@ import xarray as xr
 import numpy as np
 from botocore.config import Config
 from botocore import UNSIGNED
-#import pygrib
 import grib2io
-import requests
 
 class GFSDataProcessor:
     def __init__(self, start_datetime, end_datetime, num_pressure_levels=13, download_source='nomads', output_directory=None, download_directory=None, keep_downloaded_data=True, aws=None):
