@@ -57,11 +57,11 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     #PBS -l walltime=02:00:00
     
     # load necessary modules
-    module load intel/19.1.3.304 
-    module load wgrib2 
-    module use /apps/dev/lmodules/intel/19.1.3.304
-    module load libjpeg/9c
-    module load ve/eagle/1.0
+    module load PrgEnv-intel/8.3.3 intel/19.1.3.304 python/3.12
+    module load libjpeg-turbo/2.1.0
+    module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+    module load wgrib2
+    module load mlgfs/1.0
     module list
     
     model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights

@@ -17,11 +17,17 @@ SECTION3 = np.array([0, 1038240, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1440, 721, 0, -1,
 
 
 class Netcdf2Grib:
-    #def __init__(self, table_file, start_date):
-    def __init__(self, start_date):
+    def __init__(self, start_date, case_name="mlgfs"):
+        self.case_name = case_name
 
-        #with open(table_file, "r") as f:
-        with open("utils/tables.json", "r") as f:
+        if self.case_name == "mlgfs":
+            table_file = "utils/tables_mlgfs.json"
+        elif self.case_name.startswith("mlge"):
+            table_file = "utils/tables_mlgefs.json"
+        else:
+            raise ValueError(f"name {self.case_name} is not supported!")
+
+        with open(table_file, "r") as f:
             self.attrs = json.load(f)
         self.start_date = start_date
 
@@ -46,6 +52,17 @@ class Netcdf2Grib:
         for k,v in self.attrs[var]["attrs"].items():
             setattr(msg, k, v)
 
+        # Set GRIB2 attributes for ensemble members
+        if self.case_name.startswith("mlge"):
+            number = int(self.case_name[-2:])
+            msg.perturbationNumber = number
+            if "c00" in self.case_name:
+                msg.typeOfEnsembleForecast = 1
+                msg.typeOfData = 3
+            else:
+                msg.typeOfEnsembleForecast = 3
+                msg.typeOfData = 4
+
         # Set GRIB2 attributes unique to each iteration.
         msg.refDate = self.start_date
         msg.duration = duration
@@ -56,7 +73,7 @@ class Netcdf2Grib:
 
         return msg
 
-    def save_grib2(self, xarray_ds, case_name, outdir):
+    def save_grib2(self, xarray_ds, outdir):
 
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
@@ -81,7 +98,7 @@ class Netcdf2Grib:
             # Set output GRIB2 file.
             cycle = self.start_date.hour
             lead = int(time.dt.total_seconds()//3600)
-            outfile = os.path.join(outdir, f"{case_name}.t{cycle:02d}z.pgrb2.0p25.f{lead:03d}")
+            outfile = os.path.join(outdir, f"{self.case_name}.t{cycle:02d}z.pgrb2.0p25.f{lead:03d}")
 
             # Delete the old file.
             if os.path.isfile(outfile):
@@ -132,6 +149,9 @@ class Netcdf2Grib:
             except subprocess.CalledProcessError as e:
                 print(f"Error running wgrib2 command: {e}")
 
+        ##Temporary save netCDF files for UPP
+        #output_netcdf = os.path.join(outdir, f"{self.case_name}.t{cycle:02d}z.pgrb2.0p25.nc")
+        #xarray_ds.to_netcdf(output_netcdf)
 
 if __name__ == "__main__":
     

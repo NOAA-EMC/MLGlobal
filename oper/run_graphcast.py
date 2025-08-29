@@ -187,10 +187,10 @@ class GraphCastModel:
         # output = self.model(self.model ,rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
         forecasts = rollout.chunked_prediction(self.model, rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
         
-        filename = f"forecasts_levels-{self.num_pressure_levels}_steps-{self.forecast_length}.nc"
-        output_netcdf = os.path.join(self.output_dir, filename)
-        
-        # save forecasts
+        #filename = f"forecasts_levels-{self.num_pressure_levels}_steps-{self.forecast_length}.nc"
+        #output_netcdf = os.path.join(self.output_dir, filename)
+        #
+        ## save forecasts
         #forecasts.to_netcdf(output_netcdf)
         #print (f"GraphCast run completed successfully, you can find the GraphCast forecasts in the following directory:\n {output_netcdf}")
 
@@ -219,11 +219,11 @@ class GraphCastModel:
         elif self.grb2method == "grib2io":
             from utils.grib2io import Netcdf2Grib
 
-            converter = Netcdf2Grib(self.dates[0][1])
-            converter.save_grib2(ds, self.case_name, self.output_dir)
+            converter = Netcdf2Grib(self.dates[0][1], case_name=self.case_name)
+            converter.save_grib2(ds, self.output_dir)
 
             # Call and save forecasts in grib2
-            converter.save_grib2(forecasts, self.case_name, self.output_dir)
+            converter.save_grib2(forecasts, self.output_dir)
 
         else:
             raise ValueError(f"Method {self.method} is not supported. Choose either 'iris' or 'grib2io'!")
