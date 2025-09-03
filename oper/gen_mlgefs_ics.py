@@ -1,10 +1,3 @@
-'''
-Description: This script gets ensemble GEFS members for GraphCast initialization
-@uthor: Sadegh Sadeghi Tabas (sadegh.tabas@noaa.gov)
-Revision history: Sadegh Tabas, initial code
-                  4/29/2025, Linlin Cui, enable two AWS buckets, the input files are on noaa-ncepdev-none-ca-ufs-cpldcld
-
-'''
 import os
 import sys
 from time import time
@@ -43,6 +36,13 @@ class GFSDataProcessor:
         self.member = member
         self.cycle = self.end_datetime.hour
 
+        self.member_id = f'mem0{member[-2:]}'
+        self.datevector = np.arange(
+            self.start_datetime, 
+            self.end_datetime + timedelta(hours=6),
+            timedelta(hours=6)
+        ).astype(datetime)
+
         #self.s3 = boto3.client('s3')
         profile_name = os.environ.get('AWS_PROFILE', 'default')
         session = boto3.Session(profile_name=profile_name)
@@ -58,11 +58,26 @@ class GFSDataProcessor:
         
         self.root_directory = 'gefs'
 
-        # Specify the local directory where you want to save the files
+        # Specify the local directory where you want to save the downloaded files
         if self.download_directory is None:
-            self.local_base_directory = os.path.join(os.getcwd(), self.bucket_name+'_'+str(self.num_levels)+'_'+str(self.member))  # Use current directory if not specified
+            self.local_base_directory = os.path.join(
+                os.getcwd(), 
+                self.bucket_name+'_'+str(self.num_levels)+'_'+self.member_id
+            )  # Use current directory if not specified
         else:
-            self.local_base_directory = os.path.join(self.download_directory, self.bucket_name+'_'+str(self.num_levels)+'_'+str(self.member))
+            self.local_base_directory = os.path.join(
+                self.download_directory, 
+                self.bucket_name+'_'+str(self.num_levels)+'_'+self.member_id
+            )
+
+        # Specify the output directory where you want to save the processed files
+        if self.output_directory is None:
+            self.output_directory = os.path.join(os.getcwd(), self.member_id)
+        else:
+            self.output_directory = os.path.join(self.output_directory, self.member_id)
+        os.makedirs(self.output_directory, exist_ok=True)
+
+        self.output_netcdf = os.path.join(self.output_directory, f"mlgefs.t{self.cycle:02d}z.ic.nc")
 
         # List of file formats to download
         if self.num_levels == 13:     
@@ -185,70 +200,52 @@ class GFSDataProcessor:
         extracted_datasets = []
         files = []
         print("Start extracting variables and associated levels from grib2 files:")
-        # Loop through each folder (e.g., gdas.yyyymmdd)
-        date_folders = sorted(next(os.walk(data_directory))[1])
-        for date_folder in date_folders:
-            date_folder_path = os.path.join(data_directory, date_folder)
 
-            # Loop through each hour (e.g., '00', '06', '12', '18')
-            for hour in ['00', '06', '12', '18']:
-                subfolder_path = os.path.join(date_folder_path, hour)
+        for date in self.datevector:
 
-                # Check if the subfolder exists before processing
-                if os.path.exists(subfolder_path):
-                    # Loop through each GRIB2 file (.f000, .f001, .f006)
-                    for file_extension, variable_data in variables_to_extract.items():
-                        for variable, data in variable_data.items():
-                            levels = data['levels']
-                            first_time_step_only = data.get('first_time_step_only', False)  # Default to False if not specified
+            for file_extension, variable_data in variables_to_extract.items():
+                for variable, data in variable_data.items():
+                    levels = data['levels']
+                    first_time_step_only = data.get('first_time_step_only', False)  # Default to False if not specified
 
-                            pattern = os.path.join(subfolder_path, f'{self.member}.t*z{file_extension}')
-                            # Use glob to search for files matching the pattern
-                            matching_files = glob.glob(pattern)
-                            
-                            # Check if there's exactly one matching file
-                            if len(matching_files) == 1:
-                                grib2_file = matching_files[0]
-                                print("Found file:", grib2_file)
-                            else:
-                                print("Error: Found multiple or no matching files.")
-                                
-                            # Extract the specified variables with levels from the GRIB2 file
-                            for level in levels:
-                                output_file = os.path.join(self.download_directory,f'{variable}_{level}_{date_folder}_{hour}{file_extension}_{self.num_levels}_{self.member}.nc')
-                                files.append(output_file)
-                                
-                                # Extracting levels using regular expression
-                                matches = re.findall(r'\d+', level)
-                                
-                                # Convert the extracted matches to integers
-                                curr_levels = [int(match) for match in matches]
-                                
-                                # Get the number of levels
-                                number_of_levels = len(curr_levels)
-                                
-                                # Use wgrib2 to extract the variable with level
-                                wgrib2_command = ['wgrib2', '-nc_nlev', f'{number_of_levels}', grib2_file, '-match', f'{variable}', '-match', f'{level}', '-netcdf', output_file]
-                                subprocess.run(wgrib2_command, check=True)
+                    grib2_file = f'{self.local_base_directory}/{date.strftime("%Y%m%d")}/{date.hour:02d}/{self.member}.t{date.hour:02d}z{file_extension}'
+                        
+                    # Extract the specified variables with levels from the GRIB2 file
+                    for level in levels:
+                        output_file = os.path.join(self.download_directory,f'{variable}_{level}_{date.hour}{file_extension}_{self.num_levels}_{self.member}.nc')
+                        files.append(output_file)
+                        
+                        # Extracting levels using regular expression
+                        matches = re.findall(r'\d+', level)
+                        
+                        # Convert the extracted matches to integers
+                        curr_levels = [int(match) for match in matches]
+                        
+                        # Get the number of levels
+                        number_of_levels = len(curr_levels)
+                        
+                        # Use wgrib2 to extract the variable with level
+                        wgrib2_command = ['wgrib2', '-nc_nlev', f'{number_of_levels}', grib2_file, '-match', f'{variable}', '-match', f'{level}', '-netcdf', output_file]
+                        subprocess.run(wgrib2_command, check=True)
 
-                                # Open the extracted netcdf file as an xarray dataset
-                                ds = xr.open_dataset(output_file)
+                        # Open the extracted netcdf file as an xarray dataset
+                        ds = xr.open_dataset(output_file)
 
-                                # if variable == '^(597):':
-                                #    ds['time'] = ds['time'] - np.timedelta64(6, 'h')
+                        # if variable == '^(597):':
+                        #    ds['time'] = ds['time'] - np.timedelta64(6, 'h')
 
-                                # If specified, extract only the first time step
-                                if variable not in [':LAND:', ':HGT:']:
-                                    extracted_datasets.append(ds)
-                                else:
-                                    if first_time_step_only:
-                                        # Append the dataset to the list
-                                        ds = ds.isel(time=0)
-                                        extracted_datasets.append(ds)
-                                        variables_to_extract[file_extension][variable]['first_time_step_only'] = False
-                                
-                                # Optionally, remove the intermediate GRIB2 file
-                                # os.remove(output_file)
+                        # If specified, extract only the first time step
+                        if variable not in [':LAND:', ':HGT:']:
+                            extracted_datasets.append(ds)
+                        else:
+                            if first_time_step_only:
+                                # Append the dataset to the list
+                                ds = ds.isel(time=0)
+                                extracted_datasets.append(ds)
+                                variables_to_extract[file_extension][variable]['first_time_step_only'] = False
+                        
+                        # Optionally, remove the intermediate GRIB2 file
+                        # os.remove(output_file)
         print("Merging grib2 files:")
         ds = xr.merge(extracted_datasets)
         
@@ -316,15 +313,9 @@ class GFSDataProcessor:
         date = (self.start_datetime + timedelta(hours=6)).strftime('%Y%m%d%H')
         steps = str(len(ds['time']))
 
-        if self.output_directory is None:
-            self.output_directory = os.getcwd()  # Use current directory if not specified
-
-        os.makedirs(self.output_directory, exist_ok=True)
-        output_netcdf = os.path.join(self.output_directory, f"ml{self.member}_t{self.cycle:02d}z_ic.nc")
-
         # Save the merged dataset as a NetCDF file
-        ds.to_netcdf(output_netcdf)
-        print(f"Saved output to {output_netcdf}")
+        ds.to_netcdf(self.output_netcdf)
+        print(f"Saved output to {self.output_netcdf}")
         for file in files:
             os.remove(file)
             
@@ -335,8 +326,6 @@ class GFSDataProcessor:
         print(f"Process completed successfully!")
 
     def process_data_with_grib2io(self):
-        # Define the directory where your GRIB2 files are located
-        data_directory = self.local_base_directory
 
         #Get time-varying variables
         variables_to_extract = {
@@ -375,64 +364,44 @@ class GFSDataProcessor:
         # Create an empty list to store the extracted datasets
         mergeDSs = []
         print("Start extracting variables and associated levels from grib2 files:")
-        # Loop through each folder (e.g., gdas.yyyymmdd)
-        date_folders = sorted(next(os.walk(data_directory))[1])
-        for date_folder in date_folders:
-            date_folder_path = os.path.join(data_directory, date_folder)
+        for date in self.datevector:
 
-            # Loop through each hour (e.g., '00', '06', '12', '18')
-            for hour in ['00', '06', '12', '18']:
-                subfolder_path = os.path.join(date_folder_path, hour)
+            mergeDAs = []
+            for file_extension, variables in variables_to_extract.items():
+                fname = f'{self.local_base_directory}/{date.strftime("%Y%m%d")}/{date.hour:02d}/{self.member}.t{date.hour:02d}z{file_extension}'
 
-                # Check if the subfolder exists before processing
-                if os.path.exists(subfolder_path):
+                #open grib file
+                grbs = grib2io.open(fname)
 
-                    mergeDAs = []
+                for key, value in variables.items():
 
-                    for file_extension, variables in variables_to_extract.items():
-                        pattern = os.path.join(subfolder_path, f'{self.member}.t*z{file_extension}')
-                        # Use glob to search for files matching the pattern
-                        matching_files = glob.glob(pattern)
-                        
-                        # Check if there's exactly one matching file
-                        if len(matching_files) == 1:
-                            fname = matching_files[0]
-                            print("Found file:", fname)
+                    variable_names = key.split(', ')
+                    #levelType = value['typeOfLevel']
+                    desired_level = value['level']
+            
+                    for var_name in variable_names:
+
+                        print(f'Get variable {var_name} from file {fname}:')
+                        if len(desired_level) > 1:
+                            da = self.get_dataarray_3d(grbs, var_name, desired_level)
                         else:
-                            print("Error: Found multiple or no matching files.")
+                            da = self.get_dataarray(grbs, var_name, desired_level[0])
+                        mergeDAs.append(da)
 
-                        #open grib file
-                        grbs = grib2io.open(fname)
+                        ##extract variables from pgrb2b
+                        #if (levelType == 'isobaricInhPa') & (self.num_levels == 37):
+                        #    fname2b = os.path.join(subfolder_path, f'gdas.t{hour}z{file_extension_2b}')
+                        #    grbs2b = pygrib.open(fname2b)
+                        #    da_extra = self.get_dataarray(grbs2b, var_name, levelType, extra_levels)
+                        #    da_combined = da.combine_first(da_extra) 
+                        #    mergeDAs.append(da_combined)
+                        #else:
+                        #    mergeDAs.append(da)
 
-                        for key, value in variables.items():
+            ds = xr.merge(mergeDAs)
 
-                            variable_names = key.split(', ')
-                            #levelType = value['typeOfLevel']
-                            desired_level = value['level']
-                    
-                            for var_name in variable_names:
-
-                                print(f'Get variable {var_name} from file {fname}:')
-                                if len(desired_level) > 1:
-                                    da = self.get_dataarray_3d(grbs, var_name, desired_level)
-                                else:
-                                    da = self.get_dataarray(grbs, var_name, desired_level[0])
-                                mergeDAs.append(da)
-
-                                ##extract variables from pgrb2b
-                                #if (levelType == 'isobaricInhPa') & (self.num_levels == 37):
-                                #    fname2b = os.path.join(subfolder_path, f'gdas.t{hour}z{file_extension_2b}')
-                                #    grbs2b = pygrib.open(fname2b)
-                                #    da_extra = self.get_dataarray(grbs2b, var_name, levelType, extra_levels)
-                                #    da_combined = da.combine_first(da_extra) 
-                                #    mergeDAs.append(da_combined)
-                                #else:
-                                #    mergeDAs.append(da)
-
-                    ds = xr.merge(mergeDAs)
-
-                    mergeDSs.append(ds)
-                    ds.close()
+            mergeDSs.append(ds)
+            ds.close()
 
         #Concatenate ds
         ds = xr.concat(mergeDSs, dim='time')
@@ -440,12 +409,12 @@ class GFSDataProcessor:
         #Get 2D static variables
         desired_level = 'surface'
         #LAND
-        fname = f'{data_directory}/{self.end_datetime.strftime("%Y%m%d")}/{self.cycle:02d}/{self.member}.t{self.cycle:02d}z.pgrb2.0p25.f000'
+        fname = f'{self.local_base_directory}/{self.end_datetime.strftime("%Y%m%d")}/{self.cycle:02d}/{self.member}.t{self.cycle:02d}z.pgrb2.0p25.f000'
         grbs = grib2io.open(fname)
         da = self.get_dataarray(grbs, 'LAND', desired_level)
         ds = xr.merge([ds, da])
         #HGT_surface
-        fname = f'{data_directory}/{self.end_datetime.strftime("%Y%m%d")}/{self.cycle:02d}/{self.member}.t{self.cycle:02d}z.pgrb2s.0p25.f000'
+        fname = f'{self.local_base_directory}/{self.end_datetime.strftime("%Y%m%d")}/{self.cycle:02d}/{self.member}.t{self.cycle:02d}z.pgrb2s.0p25.f000'
         grbs = grib2io.open(fname)
         da = self.get_dataarray(grbs, 'HGT', desired_level)
         ds = xr.merge([ds, da])
@@ -497,19 +466,14 @@ class GFSDataProcessor:
         date = (self.start_datetime + timedelta(hours=6)).strftime('%Y%m%d%H')
         steps = str(len(ds['time']))
 
-        if self.output_directory is None:
-            self.output_directory = os.getcwd()  # Use current directory if not specified
-        output_netcdf = os.path.join(self.output_directory, f"ml{self.member}_t{self.cycle:02d}z_ic.nc")
-
-        #final_dataset = ds.assign_coords(datetime=ds.time)
-        ds.to_netcdf(output_netcdf)
+        ds.to_netcdf(self.output_netcdf)
         ds.close()
         
         # Optionally, remove downloaded data
         if not self.keep_downloaded_data:
             self.remove_downloaded_data()
 
-        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {output_netcdf}")
+        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {self.output_netcdf}")
             
     def remove_downloaded_data(self):
         # Remove downloaded data from the specified directory

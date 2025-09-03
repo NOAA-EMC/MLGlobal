@@ -24,7 +24,9 @@ import xarray as xr
 import numpy as np
 from botocore.config import Config
 from botocore import UNSIGNED
+#import pygrib
 import grib2io
+import requests
 
 class GFSDataProcessor:
     def __init__(self, start_datetime, end_datetime, num_pressure_levels=13, download_source='nomads', output_directory=None, download_directory=None, keep_downloaded_data=True, aws=None):
@@ -45,11 +47,17 @@ class GFSDataProcessor:
         
         self.root_directory = 'gdas'
 
-        # Specify the local directory where you want to save the files
+        # Specify the local directory where you want to save the downloaded files
         if self.download_directory is None:
             self.local_base_directory = os.path.join(os.getcwd(), self.bucket_name+'_'+str(self.num_levels))  # Use current directory if not specified
         else:
             self.local_base_directory = os.path.join(self.download_directory, self.bucket_name+'_'+str(self.num_levels))
+
+        # Specify the output directory where you want to save the processed files
+        if self.output_directory is None:
+            self.output_directory = os.getcwd()  # Use current directory if not specified
+        os.makedirs(self.output_directory, exist_ok=True)
+        self.output_netcdf = os.path.join(self.output_directory, f"mlgfs.t{self.cycle:02d}z.ic.nc")
 
         # List of file formats to download
         if self.num_levels == 13:     
@@ -345,14 +353,8 @@ class GFSDataProcessor:
         date = (self.start_datetime + timedelta(hours=6)).strftime('%Y%m%d%H')
         steps = str(len(ds['time']))
 
-        if self.output_directory is None:
-            self.output_directory = os.getcwd()  # Use current directory if not specified
-        os.makedirs(self.output_directory, exist_ok=True)
-        output_netcdf = os.path.join(self.output_directory, f"mlgfs_t{self.cycle:02d}z_ic.nc")
-
         # Save the merged dataset as a NetCDF file
-        ds.to_netcdf(output_netcdf)
-        print(f"Saved output to {output_netcdf}")
+        ds.to_netcdf(self.output_netcdf)
         for file in files:
             os.remove(file)
             
@@ -360,7 +362,7 @@ class GFSDataProcessor:
         if not self.keep_downloaded_data:
             self.remove_downloaded_data()
 
-        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {output_netcdf}")
+        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {self.output_netcdf}")
 
     def process_data_with_grib2io(self):
         # Define the directory where your GRIB2 files are located
@@ -518,19 +520,16 @@ class GFSDataProcessor:
         date = (self.start_datetime + timedelta(hours=6)).strftime('%Y%m%d%H')
         steps = str(len(ds['time']))
 
-        if self.output_directory is None:
-            self.output_directory = os.getcwd()  # Use current directory if not specified
-        output_netcdf = os.path.join(self.output_directory, f"mlgfs_t{self.cycle:02d}z_ic.nc")
 
         #final_dataset = ds.assign_coords(datetime=ds.time)
-        ds.to_netcdf(output_netcdf)
+        ds.to_netcdf(self.output_netcdf)
         ds.close()
         
         # Optionally, remove downloaded data
         if not self.keep_downloaded_data:
             self.remove_downloaded_data()
 
-        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {output_netcdf}")
+        print(f"Process completed successfully, your inputs for GraphCast model generated at:\n {self.output_netcdf}")
             
     def remove_downloaded_data(self):
         # Remove downloaded data from the specified directory

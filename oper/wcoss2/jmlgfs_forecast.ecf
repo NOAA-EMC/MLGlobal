@@ -40,7 +40,7 @@ start_time=$(date +%s)
 echo "start runing graphcast to get real time 16-days forecasts for: $curr_datetime"
 
 # Run another Python script
-python3 run_graphcast.py -i $DATAROOT/mlgfs.$PDY/$cyc/mlgfs_t"$cyc"z_ic.nc -w $model_weights -n mlgfs -l 64 -p 13 -m grib2io -o $DATAROOT/mlgfs.$PDY/$cyc -u no -k yes 
+python3 run_graphcast.py -i $DATAROOT/mlgfs.$PDY/$cyc/mlgfs.t"$cyc"z.ic.nc -w $model_weights -n mlgfs -l 64 -p 13 -o $DATAROOT/mlgfs.$PDY/$cyc -u no -k yes 
 
 end_time=$(date +%s)  # Record the end time in seconds since the epoch
 

@@ -45,6 +45,7 @@ def get_job_id(command):
 def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     ymd=curr_datetime[:8]
     cyc=curr_datetime[8:]
+    member_id = f'mem0{member[-2:]}'
 
     pbs_content = f"""#!/bin/bash
     #PBS -o {member}.out
@@ -74,7 +75,7 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     python3 gen_mlgefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/mlgefs.{ymd}/{cyc} -d $DATAROOT/mlgefs.{ymd}/{cyc}
     
     #get forecasts
-    python3 run_graphcast.py -i $DATAROOT/mlgefs.{ymd}/{cyc}/ml{member}_t{cyc}z_ic.nc -w $model_weights -n ml"{member}" -c {param} -l 64 -p 13 -m grib2io -o $DATAROOT/mlgefs.{ymd}/{cyc} -u no -k yes 
+    python3 run_graphcast.py -i $DATAROOT/mlgefs.{ymd}/{cyc}/{member_id}/mlgefs.t{cyc}z.ic.nc -w $model_weights -n ml"{member}" -c {param} -l 64 -p 13 -o $DATAROOT/mlgefs.{ymd}/{cyc}/{member_id} -u no -k yes 
     """
 
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".pbs", delete=False) as tmpfile:
