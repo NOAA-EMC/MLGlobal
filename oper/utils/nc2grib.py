@@ -75,7 +75,7 @@ class Netcdf2Grib:
 
     def save_grib2(self, xarray_ds, outdir):
 
-        prefix = "mlgefs" if self.case_name.startswith("mlge") else "mlgfs"
+        prefix = "aigefs" if self.case_name.startswith("mlge") else "aigfs"
 
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
