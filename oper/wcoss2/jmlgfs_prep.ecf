@@ -29,7 +29,7 @@ echo $cyc
 start_time=$(date +%s)
 echo "start generating graphcast inputs for: $curr_datetime"
 # Run the Python script gdas.py with the calculated times
-python3 gen_mlgfs_ics.py "$prev_datetime" "$curr_datetime" -l "$num_pressure_levels" -o $DATAROOT/mlgfs."$PYD"/"$cyc"
+python3 gen_mlgfs_ics.py "$prev_datetime" "$curr_datetime" -l "$num_pressure_levels" -o $DATAROOT/aigfs."$PYD"/"$cyc"
 
 end_time=$(date +%s)  # Record the end time in seconds since the epoch
 

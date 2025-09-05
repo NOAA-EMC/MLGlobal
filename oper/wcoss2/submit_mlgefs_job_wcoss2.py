@@ -72,10 +72,10 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     cd $PACKAGEROOT/oper/wcoss2
 
     # get input data
-    python3 gen_mlgefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/mlgefs.{ymd}/{cyc} -d $DATAROOT/mlgefs.{ymd}/{cyc}
+    python3 gen_mlgefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/aigefs.{ymd}/{cyc} -d $DATAROOT/aigefs.{ymd}/{cyc}
     
     #get forecasts
-    python3 run_graphcast.py -i $DATAROOT/mlgefs.{ymd}/{cyc}/{member_id}/mlgefs.t{cyc}z.ic.nc -w $model_weights -n ml"{member}" -c {param} -l 64 -p 13 -o $DATAROOT/mlgefs.{ymd}/{cyc}/{member_id} -u no -k yes 
+    python3 run_graphcast.py -i $DATAROOT/aigefs.{ymd}/{cyc}/{member_id}/aigefs.t{cyc}z.ic.nc -w $model_weights -n ml"{member}" -c {param} -l 64 -p 13 -o $DATAROOT/aigefs.{ymd}/{cyc}/{member_id} -u no -k yes 
     """
 
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".pbs", delete=False) as tmpfile:

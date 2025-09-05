@@ -100,8 +100,8 @@ class Netcdf2Grib:
             # Set output GRIB2 file.
             cycle = self.start_date.hour
             lead = int(time.dt.total_seconds()//3600)
-            outfile_sfc = os.path.join(outdir, f"{prefix}.t{cycle:02d}z.sfc.0p25.f{lead:03d}.grib2")
-            outfile_pres = os.path.join(outdir, f"{prefix}.t{cycle:02d}z.pres.0p25.f{lead:03d}.grib2")
+            outfile_sfc = os.path.join(outdir, f"{prefix}.t{cycle:02d}z.sfc.f{lead:03d}.grib2")
+            outfile_pres = os.path.join(outdir, f"{prefix}.t{cycle:02d}z.pres.f{lead:03d}.grib2")
 
             # Delete the old file.
             for outfile in [outfile_sfc, outfile_pres]:

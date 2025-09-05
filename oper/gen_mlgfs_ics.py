@@ -57,7 +57,7 @@ class GFSDataProcessor:
         if self.output_directory is None:
             self.output_directory = os.getcwd()  # Use current directory if not specified
         os.makedirs(self.output_directory, exist_ok=True)
-        self.output_netcdf = os.path.join(self.output_directory, f"mlgfs.t{self.cycle:02d}z.ic.nc")
+        self.output_netcdf = os.path.join(self.output_directory, f"aigfs.t{self.cycle:02d}z.ic.nc")
 
         # List of file formats to download
         if self.num_levels == 13:     

@@ -77,7 +77,7 @@ class GFSDataProcessor:
             self.output_directory = os.path.join(self.output_directory, self.member_id)
         os.makedirs(self.output_directory, exist_ok=True)
 
-        self.output_netcdf = os.path.join(self.output_directory, f"mlgefs.t{self.cycle:02d}z.ic.nc")
+        self.output_netcdf = os.path.join(self.output_directory, f"aigefs.t{self.cycle:02d}z.ic.nc")
 
         # List of file formats to download
         if self.num_levels == 13:     
