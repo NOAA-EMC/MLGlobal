@@ -10,6 +10,11 @@ HOMEDIR=${1:-/lfs/h2/emc/nems/noscrub/$USER/MLGlobal}
 JOBDIR=${HOMEDIR}/oper/wcoss2
 cd $JOBDIR
 
+#link required scripts to run dir
+ln -sf ../gen_aigfs_ics.py .
+ln -sf ../run_graphcast.py .
+ln -sf ../utils .
+
 # Get the UTC hour and calculate the time in the format yyyymmddhh
 current_hour=$(date -u +%H)
 current_hour=$((10#$current_hour))
@@ -43,6 +48,6 @@ echo "Job 1 completed"
 echo "Job 2 is running"
 job2_id=$(qsub -v PDY=$PDY,cyc=$cyc jaigfs_forecast.ecf | awk '{print $1}')
 
-#sed "s/jobid/${job2_id}/g" jAIGFS_cyclone_track_00.ecf_tmpl > jAIGFS_cyclone_track_00.ecf
-#echo "Job 3: running TC tracker"
-#qsub -v PDY=$PDY,cyc=$cyc,pert="" jAIGFS_cyclone_track_00.ecf
+sed "s/jobid/${job2_id}/g" jAIGFS_cyclone_track_00.ecf_tmpl > jAIGFS_cyclone_track_00.ecf
+echo "Job 3: running TC tracker"
+qsub -v PDY=$PDY,cyc=$cyc,pert="" jAIGFS_cyclone_track_00.ecf

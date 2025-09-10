@@ -10,6 +10,11 @@ HOMEDIR=${1:-/lfs/h2/emc/nems/noscrub/$USER/MLGlobal}
 JOBDIR=${HOMEDIR}/oper/wcoss2
 cd $JOBDIR
 
+#link required scripts to run dir
+ln -sf ../gen_aigfs_ics.py .
+ln -sf ../run_graphcast.py .
+ln -sf ../util .
+
 # delete previous files
 rm *.out *.err *.pbs
 
