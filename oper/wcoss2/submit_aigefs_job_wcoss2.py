@@ -58,11 +58,10 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     #PBS -l walltime=02:00:00
     
     # load necessary modules
-    module load PrgEnv-intel/8.3.3 intel/19.1.3.304 python/3.12
-    module load libjpeg-turbo/2.1.0
-    module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+    module load PrgEnv-intel intel python
     module load wgrib2
-    module load mlgfs/1.0
+    module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+    module load aigfs/1.0
     module list
     
     model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
@@ -72,10 +71,10 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     cd $PACKAGEROOT/oper/wcoss2
 
     # get input data
-    python3 gen_mlgefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/aigefs.{ymd}/{cyc} -d $DATAROOT/aigefs.{ymd}/{cyc}
+    python3 gen_aigefs_ics.py {prev_datetime} {curr_datetime} {member} -l 13 -s wcoss2 -o $DATAROOT/aigefs.{ymd}/{cyc} -d $DATAROOT/aigefs.{ymd}/{cyc}
     
     #get forecasts
-    python3 run_graphcast.py -i $DATAROOT/aigefs.{ymd}/{cyc}/{member_id}/aigefs.t{cyc}z.ic.nc -w $model_weights -n ml"{member}" -c {param} -l 64 -p 13 -o $DATAROOT/aigefs.{ymd}/{cyc}/{member_id} -u no -k yes 
+    python3 run_graphcast.py -i $DATAROOT/aigefs.{ymd}/{cyc}/{member_id}/aigefs.t{cyc}z.ic.nc -w $model_weights -n ai"{member}" -c {param} -l 64 -p 13 -o $DATAROOT/aigefs.{ymd}/{cyc}/{member_id} -u no -k yes 
     """
 
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".pbs", delete=False) as tmpfile:
@@ -86,23 +85,23 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     command1 = ['qsub', tmpfile.name]
     job_id1 = get_job_id(command1)
 
-    #Step 2 - run TC_tracker
-    tpl = pathlib.Path("jMLGEFS_cyclone_track_00.ecf_tmpl").read_text()
+    ##Step 2 - run TC_tracker
+    #tpl = pathlib.Path("jAIGEFS_cyclone_track_00.ecf_tmpl").read_text()
 
-    #tracker verification code only accepts 4 letters, remove "ge" from the member -> member[2:]
-    rendered = tpl.format(
-        out=f'tracker_{member}.out',
-        err=f'tracker_{member}.err',
-        job_name=f'tc_{member}', 
-        jobid=job_id1, 
-        ymd=curr_datetime[:8],
-        cyc=curr_datetime[8:],
-        ensemble_member=f"{member[2:]}"
-    )
-    jobcard = f"job{member}.pbs"
-    pathlib.Path(jobcard).write_text(rendered)
-    command2 = ['qsub', jobcard]
-    job_id2 = get_job_id(command2)
+    ##tracker verification code only accepts 4 letters, remove "ge" from the member -> member[2:]
+    #rendered = tpl.format(
+    #    out=f'tracker_{member}.out',
+    #    err=f'tracker_{member}.err',
+    #    job_name=f'tc_{member}', 
+    #    jobid=job_id1, 
+    #    ymd=curr_datetime[:8],
+    #    cyc=curr_datetime[8:],
+    #    ensemble_member=f"{member[2:]}"
+    #)
+    #jobcard = f"job{member}.pbs"
+    #pathlib.Path(jobcard).write_text(rendered)
+    #command2 = ['qsub', jobcard]
+    #job_id2 = get_job_id(command2)
 
     return job_id1
 
@@ -110,7 +109,7 @@ def compute_avgspr(ids, curr_datetime):
     PDY = curr_datetime[:8]
     cyc = curr_datetime[8:]
     dep_str = ":".join(ids)
-    tpl = pathlib.Path("jMLGEFS_ens_debias.ecf_tmpl").read_text()
+    tpl = pathlib.Path("jAIGEFS_ens_debias.ecf_tmpl").read_text()
     rendered = tpl.format(
         jobid = dep_str, 
         PDY = PDY, 

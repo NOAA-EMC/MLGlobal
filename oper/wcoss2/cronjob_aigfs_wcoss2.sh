@@ -1,11 +1,11 @@
 #!/bin/bash 
 
-module load intel/19.1.3.304 
-module use /apps/dev/lmodules/intel/19.1.3.304
-module load libjpeg/9c
-module load ve/eagle/1.0
+module load PrgEnv-intel intel python
+module load wgrib2
+module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+module load aigfs/1.0
 
-HOMEDIR=${1:-/lfs/h2/emc/nems/noscrub/$USER/mlglobal}
+HOMEDIR=${1:-/lfs/h2/emc/nems/noscrub/$USER/MLGlobal}
 
 JOBDIR=${HOMEDIR}/oper/wcoss2
 cd $JOBDIR
@@ -36,13 +36,13 @@ echo "Current state: $curr_datetime"
 echo "6 hours earlier state: $prev_datetime"
 
 echo "Job 1 is running"
-./jmlgfs_prep.ecf $curr_datetime $prev_datetime
+./jaigfs_prep.ecf $curr_datetime $prev_datetime
 sleep 60  # Simulating some work
 echo "Job 1 completed"
 
 echo "Job 2 is running"
-job2_id=$(qsub -v PDY=$PDY,cyc=$cyc jmlgfs_forecast.ecf | awk '{print $1}')
+job2_id=$(qsub -v PDY=$PDY,cyc=$cyc jaigfs_forecast.ecf | awk '{print $1}')
 
-sed "s/jobid/${job2_id}/g" jMLGFS_cyclone_track_00.ecf_tmpl > jMLGFS_cyclone_track_00.ecf
-echo "Job 3: running TC tracker"
-qsub -v PDY=$PDY,cyc=$cyc,pert="" jMLGFS_cyclone_track_00.ecf
+#sed "s/jobid/${job2_id}/g" jAIGFS_cyclone_track_00.ecf_tmpl > jAIGFS_cyclone_track_00.ecf
+#echo "Job 3: running TC tracker"
+#qsub -v PDY=$PDY,cyc=$cyc,pert="" jAIGFS_cyclone_track_00.ecf

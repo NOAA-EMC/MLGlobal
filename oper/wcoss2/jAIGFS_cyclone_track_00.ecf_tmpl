@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#PBS -o mlgfs_tracker.out
-#PBS -e mlgfs_tracker.err
-#PBS -N mlgfs_tracker
+#PBS -o aigfs_tracker.out
+#PBS -e aigfs_tracker.err
+#PBS -N aigfs_tracker
 #PBS -A GFS-DEV
 #PBS -q dev
 #PBS -W depend=afterok:jobid
@@ -23,7 +23,7 @@ set -x
 export envir=dev
 
 export DATAROOT=/lfs/h2/emc/ptmp/$USER
-export COMROOT=$DATAROOT/com/mlgfs
+export COMROOT=$DATAROOT/com/aigfs
 export KEEPDATA=NO
 
 # experiment configurations:
@@ -38,18 +38,18 @@ export job=aigfs_track_$cyc
 # EAGLE ensemble
 #modelname has to be 4 letters, EAGLE_SOLO:MGFS/MGFT, EAGLE_ENSEMBLE:MC00, MP01, ..., MP30
 if [ "$pert" = "" ]; then
-   export COMINgfs=$DATAROOT/mlgfs.$PDY
+   export COMINgfs=$DATAROOT/aigfs.$PDY
    export ensmemble=""
-   export fileprefix=mlgfs
+   export fileprefix=aigfs
    if [ "$modelversion" = "" ]; then
        export modelname="MGFS"
    elif [ "$modelversion" = "_test" ]; then
        export modelname="MGFT"
    fi
 else
-   export COMINgfs=$DATAROOT/mlgefs.$PDY
+   export COMINgfs=$DATAROOT/aigefs.$PDY
    export ensmember=""
-   export fileprefix=ml$pert
+   export fileprefix=ai$pert
    export modelname="M"$(echo "$pert" | tr '[:lower:]' '[:upper:]')
 fi
 #model history files

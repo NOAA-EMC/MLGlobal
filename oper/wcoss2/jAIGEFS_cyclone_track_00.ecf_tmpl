@@ -22,9 +22,8 @@ module list
 set -x
 export envir=dev
 
-#export PACKAGEROOT=/lfs/h2/emc/nems/noscrub/linlin.cui/git/LinlinCui-NOAA/TC_tracker/TC_tracker
 export DATAROOT=/lfs/h2/emc/ptmp/$USER
-export COMROOT=$DATAROOT/com/mlgefs
+export COMROOT=$DATAROOT/com/aigefs
 export KEEPDATA=NO
 
 # experiment configurations:
@@ -39,18 +38,18 @@ export job=aigfs_track_$cyc
 export pert={ensemble_member}
 #modelname has to be 4 letters, EAGLE_SOLO:MGFS/MGFT, EAGLE_ENSEMBLE:MC00, MP01, ..., MP30
 if [ "$pert" = "" ]; then
-   export COMINgfs=$DATAROOT/mlgfs.$PDY
-   export fileprefix=mlgfs
+   export COMINgfs=$DATAROOT/aigfs.$PDY
+   export fileprefix=aigfs
    if [ "$modelversion" = "" ]; then
        export modelname="MGFS"
    elif [ "$modelversion" = "_test" ]; then
        export modelname="MGFT"
    fi
 else
-   export COMINgfs=$DATAROOT/mlgefs.$PDY
+   export COMINgfs=$DATAROOT/aigefs.$PDY
    pertmember=`echo $pert | cut -c2-3`
    export ensmember=mem0$pertmember
-   export fileprefix=mlgefs
+   export fileprefix=aigefs
    export modelname="M"$(echo "$pert" | tr '[:lower:]' '[:upper:]')
 fi
 #model history files

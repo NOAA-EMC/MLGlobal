@@ -183,20 +183,6 @@ class GraphCastModel:
         print (f"start running GraphCast for {self.forecast_length} steps --> {self.forecast_length*6} hours.")
         self.load_model()
            
-        # output = self.model(self.model ,rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
-        forecasts = rollout.chunked_prediction(self.model, rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
-        
-        #filename = f"forecasts_levels-{self.num_pressure_levels}_steps-{self.forecast_length}.nc"
-        #output_netcdf = os.path.join(self.output_dir, filename)
-        #
-        ## save forecasts
-        #forecasts.to_netcdf(output_netcdf)
-        #print (f"GraphCast run completed successfully, you can find the GraphCast forecasts in the following directory:\n {output_netcdf}")
-
-        self.save_grib2(forecasts)
-
-    def save_grib2(self, forecasts):
-
         # Call and save f000 in grib2
         ds = self.current_batch
         ds = ds.drop_vars(['geopotential_at_surface','land_sea_mask', 'total_precipitation_6hr'])
@@ -206,12 +192,18 @@ class GraphCastModel:
         ds = ds.isel(time=slice(1, 2))
         ds['time'] = ds['time'] - pd.Timedelta(hours=6)
 
-
         converter = Netcdf2Grib(self.dates[0][1], case_name=self.case_name)
         converter.save_grib2(ds, self.output_dir)
 
-        # Call and save forecasts in grib2
-        converter.save_grib2(forecasts, self.output_dir)
+        rollout.chunked_prediction(
+            self.output_dir, 
+            converter, 
+            self.model, 
+            rng=jax.random.PRNGKey(0), 
+            inputs=self.inputs, 
+            targets_template=self.targets * np.nan, 
+            forcings=self.forcings,
+        )
 
     def upload_to_s3(self, keep_data):
         s3 = boto3.client('s3')
@@ -270,7 +262,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", help="input file path (including file name)", required=True)
     parser.add_argument("-w", "--weights", help="parent directory of the graphcast params and stats", required=True)
     parser.add_argument("-l", "--length", help="length of forecast (6-hourly), an integer number in range [1, 40]", required=True)
-    parser.add_argument("-n", "--case_name", help="mlgfs, or gefs member [mlgec00, mlgep01, ..., mlgep30]", required=True)
+    parser.add_argument("-n", "--case_name", help="gifs, or gefs member [aigec00, aigep01, ..., aigep30]", required=True)
     #parser.add_argument("-c", "--config", help="GC weight member file", required=True)
     parser.add_argument("-c", "--config", help="GC weight member file", default=None)
     parser.add_argument("-o", "--output", help="output directory", default=None)

@@ -9,7 +9,7 @@
 #PBS -l debug=true
 
 # versions file for naefs sets $naefs_ver and $code_ver
-model=mlgefs
+model=aigefs
 
 ## HOMEnaefs will de defined by the eclfow apps
 
@@ -44,6 +44,7 @@ export cyc={cyc}
 export job=aigefs_ens_debia_$PDY$cyc
 
 export DATAROOT=/lfs/h2/emc/ptmp/$USER
+export KEEPDATA=NO
 
 # EXPORT list here
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#PBS -o mlgfs.out
-#PBS -e mlgfs.err
-#PBS -N mlgfs
+#PBS -o aigfs.out
+#PBS -e aigfs.err
+#PBS -N aigfs
 #PBS -A GFS-DEV
 #PBS -q dev
 #PBS -l place=vscatter,select=1:ncpus=80:mpiprocs=80:mem=500G
@@ -13,34 +13,27 @@ set -eux
 echo -n " $( date +%s )," >  job_timestamp.txt
 
 # load necessary modules
-module load PrgEnv-intel/8.3.3 intel/19.1.3.304 python/3.12
-module load libjpeg-turbo/2.1.0
-module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+module load PrgEnv-intel intel python
 module load wgrib2
-module load mlgfs/1.0
+module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+module load aigfs/1.0
 module list
 pip list
 
 #PDY=$1
 #cyc=$2
 
-forecast_length=64
-echo "forecast length: $forecast_length"
-
-num_pressure_levels=13
-echo "number of pressure levels: $num_pressure_levels"
-
 model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
-DATAROOT=/lfs/h2/emc/ptmp/linlin.cui
+DATAROOT=/lfs/h2/emc/ptmp/$USER
 curr_datetime=$PDY$cyc
 
-cd /lfs/h2/emc/nems/noscrub/linlin.cui/git/LinlinCui-NOAA/MLGEFS/oper/wcoss2
+cd /lfs/h2/emc/nems/noscrub/linlin.cui/git/others/MLGlobal/oper/wcoss2 
 
 start_time=$(date +%s)
 echo "start runing graphcast to get real time 16-days forecasts for: $curr_datetime"
 
 # Run another Python script
-python3 run_graphcast.py -i $DATAROOT/aigfs.$PDY/$cyc/aigfs.t"$cyc"z.ic.nc -w $model_weights -n mlgfs -l 64 -p 13 -o $DATAROOT/aigfs.$PDY/$cyc -u no -k yes 
+python3 run_graphcast.py -i $DATAROOT/aigfs.$PDY/$cyc/aigfs.t"$cyc"z.ic.nc -w $model_weights -n aigfs -l 64 -p 13 -o $DATAROOT/aigfs.$PDY/$cyc -u no -k yes 
 
 end_time=$(date +%s)  # Record the end time in seconds since the epoch
 
