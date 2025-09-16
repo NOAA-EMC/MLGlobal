@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Description: Script to call the graphcast model using gdas products
 Author: Sadegh Sadeghi Tabas (sadegh.tabas@noaa.gov)

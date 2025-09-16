@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash --login
 
 module load PrgEnv-intel intel python
 module load wgrib2
@@ -41,13 +41,13 @@ echo "Current state: $curr_datetime"
 echo "6 hours earlier state: $prev_datetime"
 
 echo "Job 1 is running"
-./jaigfs_prep.ecf $curr_datetime $prev_datetime
+./jaigfs_prep.ecf $curr_datetime $prev_datetime $HOMEDIR
 sleep 60  # Simulating some work
 echo "Job 1 completed"
 
 echo "Job 2 is running"
 job2_id=$(qsub -v PDY=$PDY,cyc=$cyc jaigfs_forecast.ecf | awk '{print $1}')
 
-sed "s/jobid/${job2_id}/g" jAIGFS_cyclone_track_00.ecf_tmpl > jAIGFS_cyclone_track_00.ecf
-echo "Job 3: running TC tracker"
-qsub -v PDY=$PDY,cyc=$cyc,pert="" jAIGFS_cyclone_track_00.ecf
+#sed "s/jobid/${job2_id}/g" jAIGFS_cyclone_track_00.ecf_tmpl > jAIGFS_cyclone_track_00.ecf
+#echo "Job 3: running TC tracker"
+#qsub -v PDY=$PDY,cyc=$cyc,pert="" jAIGFS_cyclone_track_00.ecf

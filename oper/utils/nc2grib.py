@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import subprocess
@@ -80,12 +80,16 @@ class Netcdf2Grib:
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
 
-        # Update total_precipitation unit to (kg/m^2)
+        # Update total_precipitation unit to (kg/m^2) and set min to zero
         if "total_precipitation_6hr" in xarray_ds:
             xarray_ds["total_precipitation_6hr"] = xarray_ds["total_precipitation_6hr"].clip(min=0) * 1000
 
         if "total_precipitation_cumsum" in xarray_ds:
             xarray_ds["total_precipitation_cumsum"] = xarray_ds["total_precipitation_cumsum"].clip(min=0) * 1000
+
+        # Set min spfh to zero
+        if "specific_humidity" in xarray_ds:
+            xarray_ds["specific_humidity"] = xarray_ds["specific_humidity"].clip(min=0)
 
         # Convert levels values from mb to Pa.
         xarray_ds["level"] = xarray_ds["level"] * 100 # Convert mb to Pa
