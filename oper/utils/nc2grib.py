@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import functools
 from time import time
 import json
 import multiprocessing as mp
@@ -14,6 +15,18 @@ import pandas as pd
 
 
 SECTION3 = np.array([0, 1038240, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1440, 721, 0, -1, 90000000, 0, 48, -90000000, 359750000,250000, 250000, 0])
+CPOUT = os.getenv("CPOUT", "cp")
+COMOUT = os.getenv("COMOUT")
+SENDDBN = os.getenv("SENDDBN")
+DBNROOT = os.getenv("DBNROOT")
+job = os.getenv("job")
+
+run_subproc = functools.partial(
+    subprocess.run,
+    check=True,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+)
 
 
 class Netcdf2Grib:
@@ -154,6 +167,29 @@ class Netcdf2Grib:
             
             except subprocess.CalledProcessError as e:
                 print(f"Error running wgrib2 command: {e}")
+
+        if COMOUT is not None:
+            for outfile in [outfile_sfc, outfile_pres]:
+                proc = run_subproc([f"{CPOUT}", f"{outfile_pres}", f"{COMOUT}"])
+                proc = run_subproc([f"{CPOUT}", f"{outfile_pres}.idx", f"{COMOUT}"])
+            if SENDDBN is not None:
+                proc = run_subproc(
+                    [f"{DBNROOT}/bin/dbn_alert",
+                     "MODEL",
+                     f"{prefix.upper()}_GB2",
+                     f"{job}",
+                     f"{COMOUT}/{os.path.basename(outfile)}"
+                    ]
+                )
+                proc = run_subproc(
+                    [f"{DBNROOT}/bin/dbn_alert",
+                     "MODEL",
+                     f"{prefix.upper()}_GB2_IDX",
+                     f"{job}",
+                     f"{COMOUT}/{os.path.basename(outfile)}.idx"
+                    ]
+                )
+
 
 if __name__ == "__main__":
     
