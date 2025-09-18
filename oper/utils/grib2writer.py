@@ -16,14 +16,14 @@ import pandas as pd
 SECTION3 = np.array([0, 1038240, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1440, 721, 0, -1, 90000000, 0, 48, -90000000, 359750000,250000, 250000, 0])
 
 
-class Netcdf2Grib:
-    def __init__(self, start_date, case_name="aigfs"):
+class Grib2Writer:
+    def __init__(self, start_date, case_name="aigfs", json_path=None):
         self.case_name = case_name
 
         if self.case_name == "aigfs":
-            table_file = "utils/tables_aigfs.json"
+            table_file = f"{json_path}/tables_aigfs.json"
         elif self.case_name.startswith("aige"):
-            table_file = "utils/tables_aigefs.json"
+            table_file = f"{json_path}/tables_aigefs.json"
         else:
             raise ValueError(f"name {self.case_name} is not supported!")
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     t0 = time()
     outdir = "./"
     os.makedirs(outdir, exist_ok=True)
-    converter = Netcdf2Grib(start_date)
+    converter = Grib2Writer(start_date)
     converter.save_grib2(ds, g2prefix, outdir)
 
     print(f"It took {(time()-t0)/60} mins")
