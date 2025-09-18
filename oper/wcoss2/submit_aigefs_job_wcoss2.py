@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     param_path = '/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble/model_weights'
 
-    with open(f'{param_path}/fix/model_weights.json', 'r') as file:
+    with open(f'{param_path}/ens_weights/model_weights.json', 'r') as file:
         models = json.load(file)
 
     #Get current forecast cycle

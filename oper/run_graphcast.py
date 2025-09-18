@@ -198,7 +198,7 @@ class GraphCastModel:
         converter = Grib2Writer(
             self.dates[0][1], 
             case_name=self.case_name, 
-            json_path=f'{self.pretrained_model_path}/fix'
+            json_path=f'{self.pretrained_model_path}/tables'
         )
         converter.save_grib2(ds, self.output_dir)
 
