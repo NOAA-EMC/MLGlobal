@@ -64,7 +64,7 @@ def submit_job_wcoss2(member, param, curr_datetime, prev_datetime, package):
     module load aigfs/1.0
     module list
     
-    model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
+    model_weights=/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble/model_weights
     DATAROOT=/lfs/h2/emc/ptmp/$USER
     PACKAGEROOT={package}
 
@@ -128,12 +128,12 @@ if __name__ == '__main__':
 
     param_path = '/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble/model_weights'
 
-    with open('../model_weights.json', 'r') as file:
+    with open(f'{param_path}/ens_weights/model_weights.json', 'r') as file:
         models = json.load(file)
 
     #Get current forecast cycle
     #If run a hindcast, specify a datetime here, otherwise use now = None
-    #now = datetime.datetime(2025, 8, 21, 6)
+    #now = datetime.datetime(2025, 9, 17, 18)
     now = None
     curr_datetime = get_closest_cycle(now=now)
     prev_datetime = curr_datetime - datetime.timedelta(hours=6)

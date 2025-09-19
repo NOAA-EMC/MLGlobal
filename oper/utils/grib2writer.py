@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import subprocess
@@ -16,14 +16,14 @@ import pandas as pd
 SECTION3 = np.array([0, 1038240, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1440, 721, 0, -1, 90000000, 0, 48, -90000000, 359750000,250000, 250000, 0])
 
 
-class Netcdf2Grib:
-    def __init__(self, start_date, case_name="aigfs"):
+class Grib2Writer:
+    def __init__(self, start_date, case_name="aigfs", json_path=None):
         self.case_name = case_name
 
         if self.case_name == "aigfs":
-            table_file = "utils/tables_aigfs.json"
+            table_file = f"{json_path}/tables_aigfs.json"
         elif self.case_name.startswith("aige"):
-            table_file = "utils/tables_aigefs.json"
+            table_file = f"{json_path}/tables_aigefs.json"
         else:
             raise ValueError(f"name {self.case_name} is not supported!")
 
@@ -80,12 +80,16 @@ class Netcdf2Grib:
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
 
-        # Update total_precipitation unit to (kg/m^2)
+        # Update total_precipitation unit to (kg/m^2) and set min to zero
         if "total_precipitation_6hr" in xarray_ds:
             xarray_ds["total_precipitation_6hr"] = xarray_ds["total_precipitation_6hr"].clip(min=0) * 1000
 
         if "total_precipitation_cumsum" in xarray_ds:
             xarray_ds["total_precipitation_cumsum"] = xarray_ds["total_precipitation_cumsum"].clip(min=0) * 1000
+
+        # Set min spfh to zero
+        if "specific_humidity" in xarray_ds:
+            xarray_ds["specific_humidity"] = xarray_ds["specific_humidity"].clip(min=0)
 
         # Convert levels values from mb to Pa.
         xarray_ds["level"] = xarray_ds["level"] * 100 # Convert mb to Pa
@@ -166,7 +170,7 @@ if __name__ == "__main__":
     t0 = time()
     outdir = "./"
     os.makedirs(outdir, exist_ok=True)
-    converter = Netcdf2Grib(start_date)
+    converter = Grib2Writer(start_date)
     converter.save_grib2(ds, g2prefix, outdir)
 
     print(f"It took {(time()-t0)/60} mins")

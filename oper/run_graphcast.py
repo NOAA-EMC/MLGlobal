@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 Description: Script to call the graphcast model using gdas products
 Author: Sadegh Sadeghi Tabas (sadegh.tabas@noaa.gov)
@@ -27,7 +29,7 @@ from graphcast import graphcast
 from graphcast import normalization
 from graphcast import rollout
 
-from utils.nc2grib import Netcdf2Grib
+from utils.grib2writer import Grib2Writer
 
 class GraphCastModel:
     def __init__(
@@ -71,9 +73,9 @@ class GraphCastModel:
     def load_pretrained_model(self):
         """Load pre-trained GraphCast model."""
         if self.num_pressure_levels==13:
-            model_weights_path = f"{self.pretrained_model_path}/params/GCGFSv2_finetuned - GDAS - ERA5 - resolution 0.25 - pressure levels 13 - mesh 2to6 - precipitation output only.npz"
+            model_weights_path = f"{self.pretrained_model_path}/params/GCGFSv2_finetuned_GDAS-ERA5_0p25_13pl_mesh2to6_tp_output_only.npz"
         else:
-            model_weights_path = f"{self.pretrained_model_path}/params/GraphCast - ERA5 1979-2017 - resolution 0.25 - pressure levels 37 - mesh 2to6 - precipitation input and output.npz"
+            model_weights_path = f"{self.pretrained_model_path}/params/GraphCast_ERA5_1979-2017_0p25_37pl_mesh2to6_tp-input-and-output.npz"
 
         with open(model_weights_path, "rb") as f:
             ckpt = checkpoint.load(f, graphcast.CheckPoint)
@@ -84,6 +86,7 @@ class GraphCastModel:
 
             #update params
             if self.config_file_path is not None:
+                print(f'Loading params for member {self.case_name}')
                 with open(self.config_file_path, 'rb') as f:
                     self.params = pickle.load(f)
             else:
@@ -192,7 +195,11 @@ class GraphCastModel:
         ds = ds.isel(time=slice(1, 2))
         ds['time'] = ds['time'] - pd.Timedelta(hours=6)
 
-        converter = Netcdf2Grib(self.dates[0][1], case_name=self.case_name)
+        converter = Grib2Writer(
+            self.dates[0][1], 
+            case_name=self.case_name, 
+            json_path=f'{self.pretrained_model_path}/tables'
+        )
         converter.save_grib2(ds, self.output_dir)
 
         rollout.chunked_prediction(

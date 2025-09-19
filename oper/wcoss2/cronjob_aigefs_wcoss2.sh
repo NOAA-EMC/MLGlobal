@@ -11,9 +11,9 @@ JOBDIR=${HOMEDIR}/oper/wcoss2
 cd $JOBDIR
 
 #link required scripts to run dir
-ln -sf ../gen_aigfs_ics.py .
+ln -sf ../gen_aigefs_ics.py .
 ln -sf ../run_graphcast.py .
-ln -sf ../util .
+ln -sf ../utils .
 
 # delete previous files
 rm *.out *.err *.pbs

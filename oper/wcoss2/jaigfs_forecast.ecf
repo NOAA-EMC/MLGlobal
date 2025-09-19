@@ -23,7 +23,8 @@ pip list
 #PDY=$1
 #cyc=$2
 
-model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
+#model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
+model_weights=/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble/model_weights
 DATAROOT=/lfs/h2/emc/ptmp/$USER
 curr_datetime=$PDY$cyc
 
