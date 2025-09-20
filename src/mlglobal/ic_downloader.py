@@ -1,78 +1,154 @@
-import glob
 import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import timedelta
+from logging import getLogger
 
 
-class FileFormats:
-    def __init__(self, mode, num_levels=13):
+logger = getLogger(__name__)
 
-        FILE_FORMATS = {"gfs": self.gfs_file_formats, "gefs": self.gefs_file_formats}
-        self.num_levels = num_levels
-        self.file_formats = FILE_FORMATS[mode]()
 
-    def gfs_file_formats(self):
-        # List of file formats to download
-        if self.num_levels == 13:
-            file_formats = ["pgrb2.0p25.f000", "pgrb2.0p25.f006"]  # , '0p25.f001'
+class FileLookup:
+    def __init__(self, current_cycle, member=None):
+
+        self.current_cycle = current_cycle
+        self.member = member  # GEFS member values are c00, p01, p02, ..., p30
+
+        # Look back 6 and 12 hours for precip files
+        self.current_cycle_m6h = self.current_cycle - timedelta(hours=6)
+        self.current_cycle_m12h = self.current_cycle - timedelta(hours=12)
+
+        if self.member is not None:
+            self.template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{member}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
+            self.get_file_info = self._gefs_file_info
         else:
-            file_formats = [
-                "pgrb2.0p25.f000",
-                "pgrb2b.0p25.f000",
-                "pgrb2.0p25.f006",
-            ]  # , '0p25.f001'
+            self.template = f"gfs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/gfs.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
+            self.get_file_info = self._gfs_file_info
 
-        return file_formats
+    def _gfs_file_info(self):
 
-    def gefs_file_formats(self):
+        file_formats =[
+            "pgrb2.0p25.f000",
+            "pgrb2b.0p25.f000",
+            "pgrb2.0p25.f006"
+        ]
 
-        # List of file formats to download
-        if self.num_levels == 13:
-            file_formats = ["pgrb2.0p25.f000", "pgrb2s.0p25.f000"]  # , '0p25.f001'
-        else:
-            file_formats = [
-                "pgrb2.0p25.f000",
-                "pgrb2b.0p25.f000",
-                "pgrb2.0p25.f006",
-            ]  # , '0p25.f001'
+        # From current cycle
+        pgrb2_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec="pgrb2.0p25", fhour=0)
+        pgrb2b_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec="pgrb2b.0p25", fhour=0)
 
-        return file_formats
+        # From current cycle - 6 hours
+        pgrb2_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=0)
+        pgrb2_0p25_f006_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=6)
+
+        # From current cycle - 12 hours
+        pgrb2_0p25_f006_m12 = self.template.format(cycle=self.current_cycle_m12h, fspec="pgrb2.0p25", fhour=6)
+
+        file_dict = {}
+        file_dict[self.current_cycle] = {"pgrb2.0p25.f000": pgrb2_0p25_f000,
+                                         "pgrb2b.0p25.f000": pgrb2b_0p25_f000}
+        file_dict[self.current_cycle_m6h] = {"pgrb2.0p25.f000": pgrb2_0p25_f000_m6,
+                                             "pgrb2.0p25.f006": pgrb2_0p25_f006_m6}
+        file_dict[self.current_cycle_m12h] = {"pgrb2.0p25.f006": pgrb2_0p25_f006_m12}
+
+        file_list = [
+            pgrb2_0p25_f000,
+            pgrb2b_0p25_f000,
+            pgrb2_0p25_f000_m6,
+            pgrb2_0p25_f006_m6,
+            pgrb2_0p25_f006_m12
+        ]
+
+        return file_dict, file_list, file_formats
+
+    def _gefs_file_info(self):
+
+        file_formats = [
+            "pgrb2.0p25.f000",
+            "pgrb2s.0p25.f000",
+            "pgrb2s.0p25.f006"
+        ]
+
+        # From current cycle
+        pgrb2_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
+        pgrb2s_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
+
+        # From current cycle - 6 hours
+        pgrb2_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
+        pgrb2s_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
+        pgrb2s_0p25_f006_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
+
+        # From current cycle - 12 hours
+        pgrb2s_0p25_f006_m12 = self.template.format(cycle=self.current_cycle_m12h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
+
+        file_dict = {}
+        file_dict[self.current_cycle] = {"pgrb2.0p25.f000": pgrb2_0p25_f000,
+                                         "pgrb2s.0p25.f000": pgrb2s_0p25_f000}
+        file_dict[self.current_cycle_m6h] = {"pgrb2.0p25.f000": pgrb2_0p25_f000_m6,
+                                             "pgrb2s.0p25.f000": pgrb2s_0p25_f000_m6,
+                                             "pgrb2s.0p25.f006": pgrb2s_0p25_f006_m6}
+        file_dict[self.current_cycle_m12h] = {"pgrb2s.0p25.f006": pgrb2s_0p25_f006_m12}
+
+        file_list = [
+            pgrb2_0p25_f000,
+            pgrb2s_0p25_f000,
+            pgrb2_0p25_f000_m6,
+            pgrb2s_0p25_f000_m6,
+            pgrb2s_0p25_f006_m6,
+            pgrb2s_0p25_f006_m12
+        ]
+
+        return file_dict, file_list, file_formats
 
 
 class ICDownloader:
 
     def __init__(
         self,
-        mode,
-        start_datetime,
-        end_datetime,
+        current_cycle,
         member=None,
-        num_pressure_levels=13,
-        download_source="s3",
-        download_directory=None,
+        download_source="local",
+        local_directory="./data",
         bucket_name=None,
-        root_directory=None,
+        root_directory=None
     ):
-        self.mode = mode
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime
+        self.current_cycle = current_cycle
         self.member = member
-        self.num_pressure_levels = num_pressure_levels
         self.download_source = download_source
-        self.download_directory = download_directory
+        self.local_directory = local_directory
         self.bucket_name = bucket_name
         self.root_directory = root_directory
 
-        ff = FileFormats(mode, num_levels=self.num_pressure_levels)
-        self.file_formats = ff.file_formats
+        # Generate the lookup dictionary
+        lookup = FileLookup(self.current_cycle, member=self.member)
+        self.file_dict, self.file_list, self.file_formats = lookup.get_file_info()
 
-        self.s3 = self.init_s3_client() if self.download_source == "s3" else None
+        if self.download_source in ["s3"]:
+            aws_profile = os.environ.get("AWS_PROFILE", "default")
+            self.s3 = self.get_s3_client_by_bucket_type(self.bucket_name, profile_name=aws_profile)
+
+        os.makedirs(self.local_directory, exist_ok=True)
 
     @staticmethod
-    def init_s3_client():
+    def get_s3_client_by_bucket_type(bucket_name, profile_name='default'):
+        """
+        Initializes and returns a boto3 S3 client for a given bucket.
+
+        The function first attempts to get a public client. If that fails, it
+        assumes the bucket is private and creates a client using the specified
+        AWS profile.
+
+        Args:
+            bucket_name (str): The name of the S3 bucket.
+            profile_name (str): The AWS profile to use for private buckets.
+                                Defaults to 'default'.
+
+        Returns:
+            boto3.client: A configured S3 client.
+        """
 
         try:
             import boto3
+            from botocore.exceptions import ClientError
             from botocore import UNSIGNED
             from botocore.config import Config
         except ImportError as ee:
@@ -80,75 +156,71 @@ class ICDownloader:
                 "boto3 and botocore are required for S3 operations."
             ) from ee
 
+        # 1. Try to get a client configured for a public (unsigned) bucket
+        s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
         try:
-            # Try to create S3 client using profile method
-            profile_name = os.environ.get("AWS_PROFILE", "default")
-            session = boto3.Session(profile_name=profile_name)
-            current_credentials = session.get_credentials().get_frozen_credentials()
-            s3 = session.client(
-                "s3",
-                aws_access_key_id=current_credentials.access_key,
-                aws_secret_access_key=current_credentials.secret_key,
-            )
-        except Exception as e1:
-            print(f"Failed to create S3 client with profile method: {e1}")
-            try:
-                # Try to create S3 client using unsigned method
-                s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
-            except Exception as e2:
-                print(f"Failed to create S3 client with unsigned method: {e2}")
-                raise RuntimeError(
-                    "Failed to create S3 client with unsigned method."
-                ) from e2
+            # Check if the bucket can be accessed publicly without authentication
+            s3.head_bucket(Bucket=bucket_name)
+            logger.info(f"Bucket '{bucket_name}' is public. Returning an unsigned client.")
+            return s3
+        except ClientError as ee:
+            error_code = ee.response['Error']['Code']
+            # 2. If it's a 403 Forbidden, the bucket is likely private.
+            if error_code in ('403', '404'):
+                logger.warning(f"Bucket '{bucket_name}' is not public. Returning client with profile '{profile_name}'.")
 
-        return s3
-
-    def get_s3_specs(self, ymd, hh, file_format):
-
-        if self.mode == "gefs":
-
-            s3_prefix = (
-                f"Linlin.Cui/gefs_wcoss2/{self.root_directory}.{ymd}/{hh}/atmos/"
-            )
-            s3_file_format = f"{self.member:02d}.t{hh}z.{file_format}"
-
-        elif self.mode == "gfs":
-
-            if file_format == "pgrb2.0p25.f006":
-                # get prefix for precip from the previous cycle
-                # Convert ymd and hh to datetime object
-                datetime_obj = datetime.strptime(ymd + hh, "%Y%m%d%H")
-
-                # Get the datetime 6 hours before
-                datetime_before = datetime_obj - timedelta(hours=6)
-
-                # Get the date string and time string from datetime objects
-                ymd_precip = datetime_before.strftime("%Y%m%d")
-                hh_precip = datetime_before.strftime("%H")
-
-                # Construct the S3 prefix for the directory
-                s3_prefix = f"{self.root_directory}.{ymd_precip}/{hh_precip}/"
-
+                # Create a session with the specified profile
+                session = boto3.Session(profile_name=profile_name)
+                current_credentials = session.get_credentials().get_frozen_credentials()
+                s3 = session.client(
+                    "s3",
+                    aws_access_key_id=current_credentials.access_key,
+                    aws_secret_access_key=current_credentials.secret_key,
+                )
+                return s3
             else:
+                # Handle other errors, such as a non-existent bucket
+                logger.error(f"Error accessing bucket '{bucket_name}': {ee}")
+                return None
 
-                s3_prefix = f"{self.root_directory}.{ymd}/{hh}/"
+    @staticmethod
+    def get_s3_objects(s3, bucket_name: str, prefix: str) -> list:
 
-            s3_file_format = file_format
+        objects = []
+        continuation_token = None
 
-        return s3_prefix, s3_file_format
+        while True:
+            list_kwargs = {
+                'Bucket': bucket_name,
+                'Prefix': prefix,
+                'MaxKeys': 1000  # Explicitly set MaxKeys, though it's default
+            }
+            if continuation_token:
+                list_kwargs['ContinuationToken'] = continuation_token
 
-    def get_data_from_s3(
-        self, path_prefix: str, file_format: str, local_directory: str
-    ) -> None:
+            response = s3.list_objects_v2(**list_kwargs)
+
+            if 'Contents' in response:
+                objects.extend(response['Contents'])
+
+            if not response.get('IsTruncated'):
+                # No more objects to retrieve, or less than 1000 objects in total
+                break
+
+            continuation_token = response.get('NextContinuationToken')
+            if not continuation_token:
+                # Should not happen if 'IsTruncated' is True, but as a safeguard
+                break
+
+        return objects
+
+    def get_data_from_s3(self, file_list: list, local_directory: str) -> None:
         """
-        Downloads files with a specific format from an S3 bucket to a local directory.
-
+        Download files from S3 bucket to a local directory.
         Parameters
         ----------
-        prefix : str
-            The prefix (folder path) in the S3 bucket to filter objects.
-        file_format : str
-            The file extension or format to filter files (e.g., '.csv', '.json').
+        file_list : list
+            A list of files that need to be downloaded
         local_directory : str
             The local directory path where the downloaded files will be saved.
 
@@ -157,126 +229,71 @@ class ICDownloader:
         None
             This function does not return anything. Files are downloaded as a side effect.
 
-        Notes
-        -----
-        Only files ending with the specified `file_format` will be downloaded.
+        Raises
+        ------
+        Exception
+            If the file download operation fails.
         """
 
-        objects = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=path_prefix)
-        for obj in objects.get("Contents", []):
-            obj_key = obj["Key"]
-            if obj_key.endswith(f"{file_format}"):
-                local_file_path = os.path.join(
-                    local_directory, os.path.basename(obj_key)
-                )
-                if not os.path.exists(local_file_path):
-                    self.s3.download_file(self.bucket_name, obj_key, local_file_path)
-                    print(f"Downloaded {obj_key} to {local_file_path}")
-                else:
-                    print(f"File {local_file_path} already exists, skipping download.")
+        logger.info(f"Downloading files from S3 bucket: {self.bucket_name}")
+        logger.info(f"Downloading files to {local_directory}")
 
-    def get_local_specs(self, ymd: str, hh: str, file_format: str) -> tuple[str, str]:
-        """
-        Get the local specifications for a given date, time, and file format.
+        for file_name in file_list:
+            local_file_path = os.path.join(local_directory, os.path.basename(file_name))
+            if os.path.exists(local_file_path):
+                logger.warning(f"File already exists, skipping: {file_name}")
+                continue
+            file_name_in_bucket = self.root_directory + "/" + file_name if self.root_directory else file_name
+            try:
+                self.s3.download_file(self.bucket_name, file_name_in_bucket, local_file_path)
+                logger.info(f"Downloaded:  {file_name} -> {local_directory}")
+            except Exception as ee:
+                logger.error(f"Error downloading {file_name}: {ee}")
+
+    def get_data_from_local(self, file_list: list, local_directory: str) -> None:
+        """Copy files from a local directory to another local directory.
 
         Parameters
         ----------
-        ymd : str
-            The date string in the format 'YYYYMMDD'.
-        hh : str
-            The time string in the format 'HH'.
-        file_format : str
-            The file format string (e.g., 'pgrb2.0p25.f006').
+        file_list : list
+            A list of files that need to be copied.
+        local_directory : str
+            The local directory path where the copied files will be saved.
 
         Returns
         -------
-        tuple[str, str]
-            A tuple containing the local path prefix and the local file format.
+        None
+            This function does not return anything. Files are copied as a side effect.
+
+        Raises
+        ------
+        OSError
+            If the file copy operation fails.
         """
-        # TODO: elevate the hard-coded paths to class constructor (or above)
-        if self.mode == "gefs":
-            gefs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"  # For testing on Acorn
-            gefs_com_dir = "/lfs/h2/emc/ptmp/jun.wang"  # NCO does not mirror all of GEFS data to dev in RT
-            gefs_com_dir = "/lfs/h1/ops/prod/com/gefs/v12.3"
-            fprefix = file_format.split('.')[0]
-            local_prefix = f"{gefs_com_dir}/gefs.{ymd}/{hh}/atmos/{fprefix}p25"
-            local_file_format = f"{self.member:02d}.t{hh}z.{file_format}"
 
-        elif self.mode == "gfs":
+        logger.info(f"Copying files from directory: {self.root_directory}")
+        logger.info(f"Copying files to {local_directory}")
 
-            # TODO: elevate the hard-coded paths to constructor
-            gfs_com_dir = "/lfs/h2/emc/da/noscrub/rahul.mahajan/mldata"  # For testing on Acorn
-            gfs_com_dir = "/lfs/h1/ops/prod/com/gfs/v16.3"
-            if file_format == "pgrb2.0p25.f006":
-                # get prefix for precip from the previous cycle
-                # Convert ymd and hh to datetime object
-                datetime_obj = datetime.strptime(ymd + hh, "%Y%m%d%H")
-
-                # Get the datetime 6 hours before
-                datetime_before = datetime_obj - timedelta(hours=6)
-
-                # Get the date string and time string from datetime objects
-                ymd_precip = datetime_before.strftime("%Y%m%d")
-                hh_precip = datetime_before.strftime("%H")
-
-                # Construct the S3 prefix for the directory
-                local_prefix = f"{gfs_com_dir}/gfs.{ymd_precip}/{hh_precip}/atmos"
-                local_file_format = f"gfs.t{hh_precip}z.{file_format}"
-
-            else:
-
-                local_prefix = f"{gfs_com_dir}/gfs.{ymd}/{hh}/atmos"
-                local_file_format = f"gfs.t{hh}z.{file_format}"
-
-        return local_prefix, local_file_format
-
-    def get_data_from_local(
-        self, path_prefix: str, file_format: str, local_directory: str
-    ) -> None:
-
-        file_objects = glob.glob(f"{path_prefix}/*")
-        for obj_key in file_objects:
-            if obj_key.endswith(f"{file_format}"):
-
-                # Define the local file path
-                local_file_path = os.path.join(
-                    local_directory, os.path.basename(obj_key)
-                )
-
-                # Copy data to the local path
-                try:
-                    shutil.copy2(obj_key, local_file_path)
-                    print(f"Copied:  {obj_key} -> {local_directory}")
-                except OSError:
-                    raise OSError(f"Unable to copy {obj_key} to {local_directory}")
+        for file_name in file_list:
+            local_file_path = os.path.join(local_directory, os.path.basename(file_name))
+            if os.path.exists(local_file_path):
+                logger.warning(f"File already exists, skipping: {file_name}")
+                continue
+            file_name_in_remote = self.root_directory + "/" + file_name if self.root_directory else file_name
+            try:
+                shutil.copy2(file_name_in_remote, local_file_path)
+                logger.info(f"Copied:  {file_name} -> {local_directory}")
+            except OSError:
+                logger.error(f"Unable to copy {file_name} to {local_directory}")
+                raise OSError(f"Unable to copy {file_name} to {local_directory}")
 
         return
 
-    def download(self, loop_interval=6):
+    def get_data(self) -> None:
 
-        _SPECS_MAP = {"s3": self.get_s3_specs, "local": self.get_local_specs}
-        _GET_DATA_MAP = {"s3": self.get_data_from_s3, "local": self.get_data_from_local}
+        GET_DATA_MAP = {"s3": self.get_data_from_s3,
+                        "local": self.get_data_from_local}
 
-        interval_dt = timedelta(hours=loop_interval)
-
-        # Loop through the intervals
-        current_datetime = self.start_datetime
-        while current_datetime <= self.end_datetime:
-            ymd = current_datetime.strftime("%Y%m%d")
-            hh = current_datetime.strftime("%H")
-
-            # Define the local directory path where the file will be saved
-            local_directory = os.path.join(self.download_directory, ymd, hh)
-
-            # Create the local directory if it doesn't exist
-            os.makedirs(local_directory, exist_ok=True)
-
-            # Loop over file formats and download data
-            for file_format in self.file_formats:
-                prefix, fformat = _SPECS_MAP[self.download_source](ymd, hh, file_format)
-                _GET_DATA_MAP[self.download_source](prefix, fformat, local_directory)
-
-            # Move to the next interval
-            current_datetime += interval_dt
-
-        print("Download completed.")
+        logger.info("Starting download...")
+        GET_DATA_MAP[self.download_source](self.file_list, self.local_directory)
+        logger.info("Download completed.")

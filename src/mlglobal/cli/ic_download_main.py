@@ -1,23 +1,31 @@
 import argparse
+import logging
 import os
 from datetime import datetime
 
 from mlglobal.ic_downloader import ICDownloader
+from mlglobal.logger import setup_logging
+
 
 # Default bucket and root directory for each mode  # TODO: store this in a yaml or some config file
 DEFAULTS = {
     "gfs": {
         "bucket_name": "noaa-gfs-bdp-pds",
-        "root_directory": "gdas",
+        "bucket_root_directory": "",
+        "comroot": "/lfs/h1/ops/prod/com/gfs/v16.3",
     },
     "gefs": {
         "bucket_name": "noaa-ncepdev-none-ca-ufs-cpldcld",
-        "root_directory": "gefs",
+        "bucket_root_directory": "Linlin.Cui/gefs_wcoss2",
+        "comroot": "/lfs/h1/ops/prod/com/gefs/v12.3",
     },
 }
 
 
 def main():
+
+    setup_logging()
+
     parser = argparse.ArgumentParser(description="Download IC data for GFS or GEFS")
 
     subparsers = parser.add_subparsers(
@@ -26,26 +34,11 @@ def main():
 
     def _common_args(inparser, dict_in):
         inparser.add_argument(
-            "--start_date",
-            help="Start datetime",
+            "--current_cycle",
+            help="Datetime to download data for in YYYYMMDDHH format",
             type=str,
             metavar="YYYYMMDDHH",
             required=True,
-        )
-        inparser.add_argument(
-            "--end_date",
-            help="End datetime",
-            type=str,
-            metavar="YYYYMMDDHH",
-            required=True,
-        )
-        inparser.add_argument(
-            "--levels",
-            help="number of pressure levels",
-            type=int,
-            choices=[13, 37],
-            default=13,
-            required=False,
         )
         inparser.add_argument(
             "--source",
@@ -73,7 +66,7 @@ def main():
             "--root-directory",
             help="Root directory",
             type=str,
-            default=dict_in["root_directory"],
+            default=dict_in["bucket_root_directory"],
             required=False,
         )
         return inparser
@@ -85,27 +78,26 @@ def main():
     # GEFS subparser
     gefs_parser = subparsers.add_parser("gefs", help="Download GEFS ensemble data")
     gefs_parser = _common_args(gefs_parser, DEFAULTS["gefs"])
+    gefs_members = ["c00"] + [f"p{str(i).zfill(2)}" for i in range(1, 31)]
     gefs_parser.add_argument(
         "--member",
         help="Ensemble member",
-        type=int,
-        choices=list(range(0, 31)),
+        type=str,
+        choices=gefs_members,
         default=0,
     )
 
     args = parser.parse_args()
 
     downloader = ICDownloader(
-        mode=args.mode,
-        start_datetime=datetime.strptime(args.start_date, "%Y%m%d%H"),
-        end_datetime=datetime.strptime(args.end_date, "%Y%m%d%H"),
+        current_cycle=datetime.strptime(args.current_cycle, "%Y%m%d%H"),
         member=None if args.mode == "gfs" else args.member,
         download_source=args.source,
-        download_directory=args.target,
+        local_directory=args.target,
         bucket_name=args.bucket_name,
         root_directory=args.root_directory,
     )
-    downloader.download()
+    downloader.get_data()
 
 
 if __name__ == "__main__":
