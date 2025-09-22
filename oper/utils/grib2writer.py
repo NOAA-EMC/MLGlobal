@@ -80,12 +80,16 @@ class Grib2Writer:
         # Convert geopotential to geopotential height.
         xarray_ds["geopotential"] = xarray_ds["geopotential"] / 9.80665
 
-        # Update total_precipitation unit to (kg/m^2) and set min to zero
+        # Update total_precipitation_6h unit to (kg/m^2) and set min to zero
         if "total_precipitation_6hr" in xarray_ds:
             xarray_ds["total_precipitation_6hr"] = xarray_ds["total_precipitation_6hr"].clip(min=0) * 1000
 
+        # Drop total_precipitation_cumsum for AIGEFS. Otherwise update unit to (kg/m^2) and set min to zero
         if "total_precipitation_cumsum" in xarray_ds:
-            xarray_ds["total_precipitation_cumsum"] = xarray_ds["total_precipitation_cumsum"].clip(min=0) * 1000
+            if self.case_name.startswith("aige"):
+                xarray_ds = xarray_ds.drop_vars("total_precipitation_cumsum")
+            else:
+                xarray_ds["total_precipitation_cumsum"] = xarray_ds["total_precipitation_cumsum"].clip(min=0) * 1000
 
         # Set min spfh to zero
         if "specific_humidity" in xarray_ds:
