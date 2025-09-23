@@ -14,3 +14,5 @@ __email__ = "linlin.cui@noaa.gov, jun.wang@noaa.gov"
 __license__ = "CC-0"
 
 __all__ = ["__version__", "__author__", "__email__", "__license__"]
+
+from .logger import setup_logging
