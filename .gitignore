@@ -99,3 +99,9 @@ dmypy.json
 
 # VSCode files
 *vscode*
+
+# netCDF and grib files
+*.nc
+*.grib2
+*.grib2.idx
+*pgrb2*
