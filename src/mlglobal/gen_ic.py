@@ -56,10 +56,11 @@ class PrepareIC:
 
             gribfh = grib2io.open(file)
 
-            for var_pattern, details in self.varinfo[pattern].items():
+            #for var_pattern, details in self.varinfo[pattern].items():
+            for var_dict in self.varinfo[pattern]:
 
-                variable_names = var_pattern.split(", ")
-                levels = details.get("level", None)
+                variable_names = var_dict["variables"]
+                levels = var_dict["levels"]
 
                 for var_name in variable_names:
                     logger.info(f"Extracting variable: {var_name} at levels: {levels}")

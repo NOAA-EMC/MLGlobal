@@ -1,0 +1,21 @@
+pgrb2.0p25.f000:
+  - variables: ["HGT"]
+    levels: ["surface"]
+    first_time_step_only: True
+  - variables: ["TMP"]
+    levels: ["2 m above ground"]
+  - variables: ["PRMSL"]
+    levels: ["mean sea level"]
+  - variables: ["UGRD", "VGRD"]
+    levels: ["10 m above ground"]
+  - variables: ["SPFH", "VVEL", "UGRD", "VGRD", "HGT", "TMP"]
+    levels: ["50 mb", "100 mb", "150 mb", "200 mb", "250 mb", "300 mb", "400 mb", "500 mb", "600 mb", "700 mb", "850 mb", "925 mb", "1000 mb"]
+pgrb2.0p25.f006:
+  - variables: ["LAND"]
+    levels: ["surface"]
+    first_time_step_only: True
+  - variables: ["APCP"]
+    levels: ["surface"]
+pgrb2b.0p25.f000:
+  - variables: ["SPFH", "VVEL", "UGRD", "VGRD", "HGT", "TMP"]
+    levels: ["125 mb", "175 mb", "225 mb", "775 mb", "825 mb", "875 mb"]
