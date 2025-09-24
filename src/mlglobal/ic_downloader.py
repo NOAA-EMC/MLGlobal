@@ -2,83 +2,63 @@ import os
 import shutil
 from datetime import timedelta
 from logging import getLogger
+from pprint import pprint
 
 
 logger = getLogger(__name__)
 
 
 class FileLookup:
-    def __init__(self, current_cycle, member=None):
+    def __init__(self, current_cycle, num_levels=13, member=None):
 
         self.current_cycle = current_cycle
+        self.num_levels = num_levels
         self.member = member  # GEFS member values are c00, p01, p02, ..., p30
 
-        # Look back 6 and 12 hours for precip files
+        # Look back 6 hours for precip and 2 time-level data
         self.current_cycle_m6h = self.current_cycle - timedelta(hours=6)
-        self.current_cycle_m12h = self.current_cycle - timedelta(hours=12)
 
         if self.member is not None:
-            self.template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{member}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
             self.get_file_info = self._gefs_file_info
         else:
-            self.template = f"gfs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/gfs.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
             self.get_file_info = self._gfs_file_info
 
     def _gfs_file_info(self):
 
-        file_formats =[
-            "pgrb2.0p25.f000",
-            "pgrb2b.0p25.f000",
-            "pgrb2.0p25.f006"
-        ]
+        # Template for GFS files
+        template = f"gfs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/gfs.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
 
         # From current cycle
-        pgrb2_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec="pgrb2.0p25", fhour=0)
-        pgrb2b_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec="pgrb2b.0p25", fhour=0)
+        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec="pgrb2.0p25", fhour=0)
+        if self.num_levels == 37:  # Need additional pgrb2b file for 37 level data
+            pgrb2b_0p25_f000 = template.format(cycle=self.current_cycle, fspec="pgrb2b.0p25", fhour=0)
 
         # From current cycle - 6 hours
-        pgrb2_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=0)
-        pgrb2_0p25_f006_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=6)
+        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=0)
+        pgrb2_0p25_f006_m6 = template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=6)
 
-        # From current cycle - 12 hours
-        pgrb2_0p25_f006_m12 = self.template.format(cycle=self.current_cycle_m12h, fspec="pgrb2.0p25", fhour=6)
-
+        # Create a flat list of files valid at current and current-6h cycles
         file_dict = {}
-        file_dict[self.current_cycle] = {"pgrb2.0p25.f000": pgrb2_0p25_f000,
-                                         "pgrb2b.0p25.f000": pgrb2b_0p25_f000}
-        file_dict[self.current_cycle_m6h] = {"pgrb2.0p25.f000": pgrb2_0p25_f000_m6,
-                                             "pgrb2.0p25.f006": pgrb2_0p25_f006_m6}
-        file_dict[self.current_cycle_m12h] = {"pgrb2.0p25.f006": pgrb2_0p25_f006_m12}
+        file_dict[self.current_cycle] = [pgrb2_0p25_f000, pgrb2_0p25_f006_m6]
+        if self.num_levels == 37:
+            file_dict[self.current_cycle].append(pgrb2b_0p25_f000)
+        file_dict[self.current_cycle_m6h] = [pgrb2_0p25_f000_m6]
 
-        file_list = [
-            pgrb2_0p25_f000,
-            pgrb2b_0p25_f000,
-            pgrb2_0p25_f000_m6,
-            pgrb2_0p25_f006_m6,
-            pgrb2_0p25_f006_m12
-        ]
-
-        return file_dict, file_list, file_formats
+        return file_dict
 
     def _gefs_file_info(self):
 
-        file_formats = [
-            "pgrb2.0p25.f000",
-            "pgrb2s.0p25.f000",
-            "pgrb2s.0p25.f006"
-        ]
+        # Template for GEFS files
+        template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{self.member}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
 
         # From current cycle
-        pgrb2_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
-        pgrb2s_0p25_f000 = self.template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
+        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
+        pgrb2s_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
 
         # From current cycle - 6 hours
-        pgrb2_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
-        pgrb2s_0p25_f000_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
-        pgrb2s_0p25_f006_m6 = self.template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
-
-        # From current cycle - 12 hours
-        pgrb2s_0p25_f006_m12 = self.template.format(cycle=self.current_cycle_m12h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
+        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
+        pgrb2s_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
+        pgrb2s_0p25_f006_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
 
         file_dict = {}
         file_dict[self.current_cycle] = {"pgrb2.0p25.f000": pgrb2_0p25_f000,
@@ -86,18 +66,8 @@ class FileLookup:
         file_dict[self.current_cycle_m6h] = {"pgrb2.0p25.f000": pgrb2_0p25_f000_m6,
                                              "pgrb2s.0p25.f000": pgrb2s_0p25_f000_m6,
                                              "pgrb2s.0p25.f006": pgrb2s_0p25_f006_m6}
-        file_dict[self.current_cycle_m12h] = {"pgrb2s.0p25.f006": pgrb2s_0p25_f006_m12}
 
-        file_list = [
-            pgrb2_0p25_f000,
-            pgrb2s_0p25_f000,
-            pgrb2_0p25_f000_m6,
-            pgrb2s_0p25_f000_m6,
-            pgrb2s_0p25_f006_m6,
-            pgrb2s_0p25_f006_m12
-        ]
-
-        return file_dict, file_list, file_formats
+        return file_dict
 
 
 class ICDownloader:
@@ -105,6 +75,7 @@ class ICDownloader:
     def __init__(
         self,
         current_cycle,
+        num_levels=13,
         member=None,
         download_source="local",
         local_directory="./data",
@@ -112,6 +83,7 @@ class ICDownloader:
         root_directory=None
     ):
         self.current_cycle = current_cycle
+        self.num_levels = num_levels
         self.member = member
         self.download_source = download_source
         self.local_directory = local_directory
@@ -119,8 +91,14 @@ class ICDownloader:
         self.root_directory = root_directory
 
         # Generate the lookup dictionary
-        lookup = FileLookup(self.current_cycle, member=self.member)
-        self.file_dict, self.file_list, self.file_formats = lookup.get_file_info()
+        lookup = FileLookup(self.current_cycle, member=self.member, num_levels=self.num_levels)
+        self.file_dict = lookup.get_file_info()
+
+        # Flatten the file_dict to a simple list of files
+        file_list = []
+        for files in self.file_dict.values():
+            file_list.extend(files)
+        self.file_list = file_list
 
         if self.download_source in ["s3"]:
             aws_profile = os.environ.get("AWS_PROFILE", "default")

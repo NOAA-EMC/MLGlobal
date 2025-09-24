@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 from datetime import datetime
 
@@ -44,8 +43,8 @@ def main():
             "--source",
             help="Data source",
             type=str,
-            choices=["s3", "local"],
-            default="s3",
+            choices=["local", "s3"],
+            default="local",
             required=False,
         )
         inparser.add_argument(
@@ -66,7 +65,7 @@ def main():
             "--root-directory",
             help="Root directory",
             type=str,
-            default=dict_in["bucket_root_directory"],
+            default=dict_in["comroot"],
             required=False,
         )
         return inparser
@@ -84,7 +83,7 @@ def main():
         help="Ensemble member",
         type=str,
         choices=gefs_members,
-        default=0,
+        default="c00",
     )
 
     args = parser.parse_args()

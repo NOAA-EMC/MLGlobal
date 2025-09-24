@@ -7,6 +7,8 @@ import numpy as np
 from datetime import datetime
 from pprint import pprint
 import fnmatch
+from mlglobal.ic_downloader import FileLookup
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +18,21 @@ class PrepareIC:
     def __init__(self,
                  current_cycle: datetime,
                  varinfo_file: str,
-                 filelist: list = [],
+                 member: str | None = None,
+                 num_levels: int = 13,
                  data_dir: str = "./data",
                  output_netcdf: str = "ic.nc") -> None:
 
         self.current_cycle = current_cycle
         self.varinfo = self.get_var_info(varinfo_file)
-        self.input_file_list = filelist
+        self.member = member
+        self.num_levels = num_levels
         self.data_dir = data_dir
         self.output_netcdf = output_netcdf
+
+        # Generate the lookup dictionary
+        lookup = FileLookup(self.current_cycle, member=self.member, num_levels=self.num_levels)
+        self.file_dict = lookup.get_file_info()
 
     def get_var_info(self, yaml_file) -> dict:
 
@@ -38,76 +46,72 @@ class PrepareIC:
         file_patterns = list(self.varinfo.keys())
 
         mergeDSs = []
-        mergeDAs = []
+        for cycle in self.file_dict.keys():
 
-        # Files are all valid at the same time, so we can merge them along the time dimension
-        for file in self.input_file_list:
-            matched = False
-            for pattern in file_patterns:
-                if fnmatch.fnmatch(file, os.path.join(self.data_dir, '*' + pattern)):
-                    logger.debug(f"Matched pattern: {pattern} in file: {file}")
-                    matched = True
-                    break
+            mergeDAs = []
 
-            if not matched:
-                logger.warning(f"No pattern matched for file: {file}")  # TODO: should this raise an error?
+            # Files valid at the same time, so we can merge them along the time dimension
+            for file in self.file_dict[cycle]:
 
-            logger.info(f"Processing file: {os.path.basename(file)}")
+                filename = os.path.basename(file)
+                file = os.path.join(self.data_dir, filename)
 
-            gribfh = grib2io.open(file)
+                matched = False
+                for pattern in file_patterns:
+                    if fnmatch.fnmatch(file, os.path.join(self.data_dir, '*' + pattern)):
+                        logger.debug(f"Matched pattern: {pattern} in file: {filename}")
+                        matched = True
+                        break
 
-            #for var_pattern, details in self.varinfo[pattern].items():
-            for var_dict in self.varinfo[pattern]:
+                if not matched:
+                    logger.error(f"No pattern matched for file: {filename}")  # TODO: should this raise an error?
+                    raise FileNotFoundError(f"No pattern matched for file: {filename}")
 
-                variable_names = var_dict["variables"]
-                levels = var_dict["levels"]
+                logger.info(f"Processing {filename=}")
 
-                for var_name in variable_names:
-                    logger.info(f"Extracting variable: {var_name} at levels: {levels}")
-                    if len(levels) > 1:
-                        da = self.get_dataarray_3d(gribfh, var_name, levels)
-                    else:
-                        da = self.get_dataarray_2d(gribfh, var_name, levels[0])
-                    mergeDAs.append(da)
+                gribfh = grib2io.open(file, "r")
 
-            gribfh.close()
+                for var_dict in self.varinfo[pattern]:
 
-        ds = xr.merge(mergeDAs, compat="no_conflicts")
-        mergeDSs.append(ds)
-        ds.close()
+                    variable_names = var_dict["variables"]
+                    levels = var_dict["levels"]
 
+                    for var_name in variable_names:
+                        logger.info(f"Extracting variable: {var_name} at levels: {levels}")
+                        if len(levels) > 1:
+                            da = self.get_dataarray_3d(gribfh, var_name, levels)
+                        else:
+                            da = self.get_dataarray_2d(gribfh, var_name, levels[0])
+                        mergeDAs.append(da)
+
+                gribfh.close()
+
+            ds = xr.merge(mergeDAs, compat="no_conflicts")
+            mergeDSs.append(ds)
+            ds.close()
+
+        # Concatenate along the time dimension
         ds = xr.concat(mergeDSs, dim="time")
 
         # Get 2D static data from the f000 file
         # From the file list find the first file that ends with .f000
-        f000_file = next((f for f in self.input_file_list if f.endswith(".f000")), None)
+        f000_file = next((f for f in self.file_dict[self.current_cycle] if f.endswith(".f000")), None)
         if f000_file is None:
-            logger.warning("No 00Z f000 file found.")  # TODO: should this raise an error?
-            return
+            logger.error("No 00Z f000 file found.")  # TODO: should this raise an error?
+            raise FileNotFoundError("No f000 file found.")
 
-        gribfh = grib2io.open(os.path.join(self.data_dir, f000_file))
+        f000_file = os.path.join(self.data_dir, os.path.basename(f000_file))
+        gribfh = grib2io.open(f000_file, "r")
         static_vars = ["LAND", "HGT"]
         for var_name in static_vars:
             da = self.get_dataarray_2d(gribfh, var_name, "surface")
             ds = xr.merge([ds, da], compat="no_conflicts")
         gribfh.close()
 
-        ds = ds.rename({
-            "LAND_surface": "land_sea_mask",
-            "HGT_surface": "geopotential_at_surface",
-            "PRMSL_meansealevel": "mean_sea_level_pressure",
-            "TMP_2maboveground": "2m_temperature",
-            "UGRD_10maboveground": "10m_u_component_of_wind",
-            "VGRD_10maboveground": "10m_v_component_of_wind",
-            "APCP_surface": "total_precipitation_6hr",
-            "HGT": "geopotential",
-            "TMP": "temperature",
-            "SPFH": "specific_humidity",
-            "VVEL": "vertical_velocity",
-            "UGRD": "u_component_of_wind",
-            "VGRD": "v_component_of_wind",
-        })
+        # Rename variables to match graphcast naming conventions
+        ds = self.rename_dsvars(ds)
 
+        # Add datetime coordinate
         ds = ds.assign_coords(datetime=ds.time)
 
         # Adjust time values relative to the first time step
@@ -125,13 +129,47 @@ class PrepareIC:
         ds["geopotential_at_surface"] = ds["geopotential_at_surface"] * 9.80665
         ds["geopotential"] = ds["geopotential"] * 9.80665
 
-        # Update total_precipitation_6hr unit to (m) from (kg/m^2) by dividing it by 1000kg/m³
-        ds["total_precipitation_6hr"] = ds["total_precipitation_6hr"] / 1000.0
+        # For GEFS, if total_precipitation_6hr is missing, create it with zeros
+        if "total_precipitation_6hr" not in ds:
+            logger.warning("total_precipitation_6hr variable not found. Creating it with zeros.")
+            ds["total_precipitation_6hr"] = xr.zeros_like(ds["2m_temperature"])
+        else:
+            # Update total_precipitation_6hr unit to (m) from (kg/m^2) by dividing it by 1000kg/m³
+            ds["total_precipitation_6hr"] = ds["total_precipitation_6hr"] / 1000.0
 
         ds.to_netcdf(self.output_netcdf)
         ds.close()
 
         return
+
+    @staticmethod
+    def rename_dsvars(ds: xr.Dataset, rename_dict: dict = None) -> xr.Dataset:
+        """Rename dataset variables to match graphcast naming conventions."""
+        logger.info("Renaming dataset variables to match graphcast naming conventions.")
+
+        # Default rename dictionary  #TODO: move to yaml?
+        if rename_dict is None:
+            rename_dict = {
+                "LAND_surface": "land_sea_mask",
+                "HGT_surface": "geopotential_at_surface",
+                "PRMSL_meansealevel": "mean_sea_level_pressure",
+                "TMP_2maboveground": "2m_temperature",
+                "UGRD_10maboveground": "10m_u_component_of_wind",
+                "VGRD_10maboveground": "10m_v_component_of_wind",
+                "HGT": "geopotential",
+                "TMP": "temperature",
+                "SPFH": "specific_humidity",
+                "VVEL": "vertical_velocity",
+                "UGRD": "u_component_of_wind",
+                "VGRD": "v_component_of_wind",
+            }
+            if "APCP_surface" in ds:
+                rename_dict["APCP_surface"] = "total_precipitation_6hr"
+            logger.debug(f"Using rename_dict: {rename_dict}")
+
+        ds = ds.rename(rename_dict)
+
+        return ds
 
     @staticmethod
     def get_dataarray_2d(grbfile, var_name, desired_level):
@@ -169,7 +207,7 @@ class PrepareIC:
                 }
             )
         elif len(data.shape) == 3:
-            print("3D data found in 2D function")
+            logger.warning("3D data found in 2D function")
             da = xr.Dataset(
                 data_vars={
                     var_name: (["level", "lat", "lon"], data.astype("float32"))
@@ -266,14 +304,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    input_file_list = [os.path.join(args.data_dir, "gfs.t00z.pgrb2.0p25.f000"),
-                       os.path.join(args.data_dir, "gfs.t18z.pgrb2.0p25.f006")]
-    #input_file_list = glob.glob(os.path.join(args.data_dir, "*"))
-
     prep = PrepareIC(
         current_cycle=datetime.strptime(args.current_cycle, "%Y%m%d%H"),
         varinfo_file=args.yaml,
-        filelist=input_file_list,
+        member=None,
+        num_levels=13,
         output_netcdf=args.output,
         data_dir=args.data_dir
     )
