@@ -16,7 +16,7 @@ repos:
       - id: black
         language_version: python3.12 # Specify your Python version
         files: ^(src/|tests/)
-        exclude: ^(oper/|graphcast/|training/)
+        exclude: ^(oper/|graphcast/|training/)$
 
   # Flake8 linter for style guide enforcement and error checking
   - repo: https://github.com/PyCQA/flake8
@@ -26,7 +26,7 @@ repos:
         name: flake8
         entry: flake8
         files: ^(src/|tests/)
-        exclude: ^(oper/|graphcast/|training/)
+        exclude: ^(oper/|graphcast/|training/)$
 
   # isort for sorting imports alphabetically and separating them into sections
   - repo: https://github.com/PyCQA/isort
@@ -36,4 +36,4 @@ repos:
         name: isort (python)
         args: ["--profile", "black"] # Use the black profile for compatibility
         files: ^(src/|tests/)
-        exclude: ^(oper/|graphcast/|training/)
+        exclude: ^(oper/|graphcast/|training/)$
