@@ -71,13 +71,9 @@ notebooks = [
 requires = ["setuptools>=64.0.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
-
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = ["mlglobal"]
 
 [project.scripts]
-ic-download = "mlglobal.cli.ic_download_main:main"
-#ic-preprocess = "mlglobal.cli.gefs_preprocess_main:main"
-#graphcast-run = "mlglobal.cli.graphcast_main:main"
-#nc2grib2 = "mlglobal.cli.nc2grib2_main:main"
+gen_ics = "mlglobal.cli.gen_ics_main:main"

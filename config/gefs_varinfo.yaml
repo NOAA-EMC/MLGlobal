@@ -18,4 +18,3 @@ time_invariant:
     - variables: ["HGT"]
       levels: ["surface"]
       first_time_step_only: True
-

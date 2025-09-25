@@ -22,4 +22,3 @@ time_invariant:
     - variables: ["LAND"]
       levels: ["surface"]
       first_time_step_only: True
-

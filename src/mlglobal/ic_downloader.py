@@ -2,8 +2,6 @@ import os
 import shutil
 from datetime import timedelta
 from logging import getLogger
-from pprint import pprint
-
 
 logger = getLogger(__name__)
 
@@ -26,16 +24,24 @@ class FileLookup:
     def _gfs_file_info(self):
 
         # Template for GFS files
-        template = f"gfs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/gfs.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
+        template = f"gfs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/gfs.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"  # noqa: F541
 
         # From current cycle
-        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec="pgrb2.0p25", fhour=0)
+        pgrb2_0p25_f000 = template.format(
+            cycle=self.current_cycle, fspec="pgrb2.0p25", fhour=0
+        )
         if self.num_levels == 37:  # Need additional pgrb2b file for 37 level data
-            pgrb2b_0p25_f000 = template.format(cycle=self.current_cycle, fspec="pgrb2b.0p25", fhour=0)
+            pgrb2b_0p25_f000 = template.format(
+                cycle=self.current_cycle, fspec="pgrb2b.0p25", fhour=0
+            )
 
         # From current cycle - 6 hours
-        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=0)
-        pgrb2_0p25_f006_m6 = template.format(cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=6)
+        pgrb2_0p25_f000_m6 = template.format(
+            cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=0
+        )
+        pgrb2_0p25_f006_m6 = template.format(
+            cycle=self.current_cycle_m6h, fspec="pgrb2.0p25", fhour=6
+        )
 
         # Create a flat list of files valid at current and current-6h cycles
         file_dict = {}
@@ -49,15 +55,39 @@ class FileLookup:
     def _gefs_file_info(self):
 
         # Template for GEFS files
-        template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{{member}}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
+        template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{{member}}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"  # noqa: F541
 
         # From current cycle
-        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0, member=self.member)
-        pgrb2s_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0, member=self.member)
+        pgrb2_0p25_f000 = template.format(
+            cycle=self.current_cycle,
+            fspec_dir="pgrb2p25",
+            fspec="pgrb2.0p25",
+            fhour=0,
+            member=self.member,
+        )
+        pgrb2s_0p25_f000 = template.format(
+            cycle=self.current_cycle,
+            fspec_dir="pgrb2sp25",
+            fspec="pgrb2s.0p25",
+            fhour=0,
+            member=self.member,
+        )
 
         # From current cycle - 6 hours
-        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0, member=self.member)
-        pgrb2s_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0, member=self.member)
+        pgrb2_0p25_f000_m6 = template.format(
+            cycle=self.current_cycle_m6h,
+            fspec_dir="pgrb2p25",
+            fspec="pgrb2.0p25",
+            fhour=0,
+            member=self.member,
+        )
+        pgrb2s_0p25_f000_m6 = template.format(
+            cycle=self.current_cycle_m6h,
+            fspec_dir="pgrb2sp25",
+            fspec="pgrb2s.0p25",
+            fhour=0,
+            member=self.member,
+        )
 
         file_dict = {}
         file_dict[self.current_cycle] = [pgrb2_0p25_f000, pgrb2s_0p25_f000]
@@ -76,7 +106,8 @@ class ICDownloader:
         download_source="local",
         local_directory="./data",
         bucket_name=None,
-        root_directory=None
+        bucket_root_directory=None,
+        root_directory=None,
     ):
         self.current_cycle = current_cycle
         self.num_levels = num_levels
@@ -84,10 +115,13 @@ class ICDownloader:
         self.download_source = download_source
         self.local_directory = local_directory
         self.bucket_name = bucket_name
+        self.bucket_root_directory = bucket_root_directory
         self.root_directory = root_directory
 
         # Generate the lookup dictionary
-        lookup = FileLookup(self.current_cycle, member=self.member, num_levels=self.num_levels)
+        lookup = FileLookup(
+            self.current_cycle, member=self.member, num_levels=self.num_levels
+        )
         self.file_dict = lookup.get_file_info()
 
         # Flatten the file_dict to a simple list of files
@@ -98,12 +132,14 @@ class ICDownloader:
 
         if self.download_source in ["s3"]:
             aws_profile = os.environ.get("AWS_PROFILE", "default")
-            self.s3 = self.get_s3_client_by_bucket_type(self.bucket_name, profile_name=aws_profile)
+            self.s3 = self.get_s3_client_by_bucket_type(
+                self.bucket_name, profile_name=aws_profile
+            )
 
         os.makedirs(self.local_directory, exist_ok=True)
 
     @staticmethod
-    def get_s3_client_by_bucket_type(bucket_name, profile_name='default'):
+    def get_s3_client_by_bucket_type(bucket_name, profile_name="default"):
         """
         Initializes and returns a boto3 S3 client for a given bucket.
 
@@ -122,9 +158,9 @@ class ICDownloader:
 
         try:
             import boto3
-            from botocore.exceptions import ClientError
             from botocore import UNSIGNED
             from botocore.config import Config
+            from botocore.exceptions import ClientError
         except ImportError as ee:
             raise ImportError(
                 "boto3 and botocore are required for S3 operations."
@@ -135,13 +171,17 @@ class ICDownloader:
         try:
             # Check if the bucket can be accessed publicly without authentication
             s3.head_bucket(Bucket=bucket_name)
-            logger.info(f"Bucket '{bucket_name}' is public. Returning an unsigned client.")
+            logger.info(
+                f"Bucket '{bucket_name}' is public. Returning an unsigned client."
+            )
             return s3
         except ClientError as ee:
-            error_code = ee.response['Error']['Code']
+            error_code = ee.response["Error"]["Code"]
             # 2. If it's a 403 Forbidden, the bucket is likely private.
-            if error_code in ('403', '404'):
-                logger.warning(f"Bucket '{bucket_name}' is not public. Returning client with profile '{profile_name}'.")
+            if error_code in ("403", "404"):
+                logger.warning(
+                    f"Bucket '{bucket_name}' is not public. Returning client with profile '{profile_name}'."
+                )
 
                 # Create a session with the specified profile
                 session = boto3.Session(profile_name=profile_name)
@@ -159,29 +199,47 @@ class ICDownloader:
 
     @staticmethod
     def get_s3_objects(s3, bucket_name: str, prefix: str) -> list:
+        """Retrieve a list of objects from an S3 bucket with a specific prefix.
+        This method handles pagination to ensure all objects are retrieved.
+        By default, S3 returns up to 1000 objects per request.
+
+        Parameters
+        ----------
+        s3 : boto3.client
+            The S3 client to use for the operation.
+        bucket_name : str
+            The name of the S3 bucket.
+        prefix : str
+            The prefix to filter the objects.
+
+        Returns
+        -------
+        list
+            A list of S3 objects that match the prefix.
+        """
 
         objects = []
         continuation_token = None
 
         while True:
             list_kwargs = {
-                'Bucket': bucket_name,
-                'Prefix': prefix,
-                'MaxKeys': 1000  # Explicitly set MaxKeys, though it's default
+                "Bucket": bucket_name,
+                "Prefix": prefix,
+                "MaxKeys": 1000,  # Explicitly set MaxKeys, though it's default
             }
             if continuation_token:
-                list_kwargs['ContinuationToken'] = continuation_token
+                list_kwargs["ContinuationToken"] = continuation_token
 
             response = s3.list_objects_v2(**list_kwargs)
 
-            if 'Contents' in response:
-                objects.extend(response['Contents'])
+            if "Contents" in response:
+                objects.extend(response["Contents"])
 
-            if not response.get('IsTruncated'):
+            if not response.get("IsTruncated"):
                 # No more objects to retrieve, or less than 1000 objects in total
                 break
 
-            continuation_token = response.get('NextContinuationToken')
+            continuation_token = response.get("NextContinuationToken")
             if not continuation_token:
                 # Should not happen if 'IsTruncated' is True, but as a safeguard
                 break
@@ -217,9 +275,16 @@ class ICDownloader:
             if os.path.exists(local_file_path):
                 logger.warning(f"File already exists, skipping: {file_name}")
                 continue
-            file_name_in_bucket = self.root_directory + "/" + file_name if self.root_directory else file_name
+            file_name_in_bucket = (
+                self.bucket_root_directory + "/" + file_name
+                if self.bucket_root_directory
+                else file_name
+            )
+            print(f"Downloading {file_name_in_bucket} to {local_file_path}")
             try:
-                self.s3.download_file(self.bucket_name, file_name_in_bucket, local_file_path)
+                self.s3.download_file(
+                    self.bucket_name, file_name_in_bucket, local_file_path
+                )
                 logger.info(f"Downloaded:  {file_name} -> {local_directory}")
             except Exception as ee:
                 logger.error(f"Error downloading {file_name}: {ee}")
@@ -253,7 +318,11 @@ class ICDownloader:
             if os.path.exists(local_file_path):
                 logger.warning(f"File already exists, skipping: {file_name}")
                 continue
-            file_name_in_remote = self.root_directory + "/" + file_name if self.root_directory else file_name
+            file_name_in_remote = (
+                self.root_directory + "/" + file_name
+                if self.root_directory
+                else file_name
+            )
             try:
                 shutil.copy2(file_name_in_remote, local_file_path)
                 logger.info(f"Copied:  {file_name} -> {local_directory}")
@@ -265,8 +334,7 @@ class ICDownloader:
 
     def get_data(self) -> None:
 
-        GET_DATA_MAP = {"s3": self.get_data_from_s3,
-                        "local": self.get_data_from_local}
+        GET_DATA_MAP = {"s3": self.get_data_from_s3, "local": self.get_data_from_local}
 
         logger.info("Starting download...")
         GET_DATA_MAP[self.download_source](self.file_list, self.local_directory)
