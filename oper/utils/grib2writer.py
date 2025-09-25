@@ -146,7 +146,7 @@ class Grib2Writer:
         grib2_out_pres.close()
 
         # Release post job to create index files and copy files to COM
-        if os.getenv("envir") is not None:
+        if os.environ.get("SENDECF", "NO"):
             DATA = os.getenv("DATA")
             cmd = [f"{DATA}/set_event.sh", f"{lead:03d}"]
             print(f"Running shell subprocess {cmd}")
