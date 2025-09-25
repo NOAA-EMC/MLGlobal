@@ -1,10 +1,39 @@
 name: pytests
 on: [push, pull_request]
 
+env:
+  g2c_VERSION: 2.2.0
+  G2C_DIR: ${{ github.workspace }}/g2c-${{ env.g2c_VERSION }}
+  G2C_STATIC: True
+  CC: gcc-14
+
 jobs:
+  cache-g2c:
+    runs-on: ubuntu-latest
+    name: Build and cache g2c library
+    steps:
+      - name: Cache g2c installation
+        id: cache-g2c
+        uses: actions/cache@v4
+        with:
+          path: |
+            g2c-${{ env.g2c_VERSION }}
+          key: g2c-${{ env.g2c_VERSION }}
+
+      - name: Checkout, build and install g2c
+        if: steps.cache-g2c.outputs.cache-hit != 'true'
+        run: |
+          wget https://github.com/NOAA-EMC/NCEPLIBS-g2c/archive/refs/tags/v${{ env.g2c_VERSION }}.tar.gz
+          tar -xzvf v${{ env.g2c_VERSION }}.tar.gz
+          cd NCEPLIBS-g2c-${{ env.g2c_VERSION }}
+          mkdir build && cd build
+          cmake -DUSE_Jasper=OFF -DUSE_OpenJPEG=ON -DBUILD_PNG=ON -DBUILD_AEC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=../../g2c-${{ env.g2c_VERSION }} ..
+          make -j2
+          make install
+
   run_pytests:
     runs-on: ubuntu-latest
-    name: Install wxflow and run tests with pytests
+    name: Install and run tests with pytests
     strategy:
       matrix:
         python: ["3.11", "3.12", "3.13"]
