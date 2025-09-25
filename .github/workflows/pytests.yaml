@@ -1,0 +1,33 @@
+name: pytests
+on: [push, pull_request]
+
+jobs:
+  run_pytests:
+    runs-on: ubuntu-latest
+    name: Install wxflow and run tests with pytests
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install (upgrade) python dependencies
+        run: |
+          pip install --upgrade pip
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install
+        run: |
+          cd $GITHUB_WORKSPACE
+          pip install .[dev]
+
+      - name: Run pytests
+        run: |
+          cd $GITHUB_WORKSPACE
+          pytest -v
