@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   g2c_VERSION: 2.2.0
-  G2C_DIR: ${{ github.workspace }}/g2c-${{ env.g2c_VERSION }}
+  G2C_DIR: ${{ github.workspace }}/g2c-2.2.0
   G2C_STATIC: True
   CC: gcc-14
 
