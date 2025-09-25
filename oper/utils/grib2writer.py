@@ -147,8 +147,8 @@ class Grib2Writer:
 
         # Release post job to create index files and copy files to COM
         if os.environ.get("SENDECF", "NO"):
-            DATA = os.getenv("DATA")
-            cmd = [f"{DATA}/set_event.sh", f"{lead:03d}"]
+            SETEVENTSH = os.environ.get("SETEVENTSH")
+            cmd = [SETEVENTSH, f"{lead:03d}"]
             print(f"Running shell subprocess {cmd}")
             subprocess.run(cmd, check=True)
 
