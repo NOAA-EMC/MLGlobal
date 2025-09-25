@@ -3,8 +3,6 @@ on: [push, pull_request]
 
 env:
   g2c_VERSION: 2.2.0
-  G2C_DIR: ${{ github.workspace }}/g2c-2.2.0
-  G2C_STATIC: True
   CC: gcc-14
 
 jobs:
@@ -34,7 +32,8 @@ jobs:
           tar -xzvf v${{ env.g2c_VERSION }}.tar.gz
           cd NCEPLIBS-g2c-${{ env.g2c_VERSION }}
           mkdir build && cd build
-          cmake -DUSE_Jasper=OFF -DUSE_OpenJPEG=ON -DBUILD_PNG=ON -DBUILD_AEC=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=../../g2c-${{ env.g2c_VERSION }} ..
+          cmake -DUSE_Jasper=OFF -DUSE_OpenJPEG=ON -DBUILD_PNG=ON -DBUILD_AEC=ON -DBUILD_SHARED_LIBS=OFF \
+                -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/g2c-${{ env.g2c_VERSION }} ..
           make -j2
           make install
 
@@ -61,6 +60,8 @@ jobs:
 
       - name: Install
         run: |
+          export G2C_STATIC=True
+          export G2C_DIR=${{ github.workspace }}/g2c-${{ env.g2c_VERSION }}
           cd $GITHUB_WORKSPACE
           pip install .[dev]
 
