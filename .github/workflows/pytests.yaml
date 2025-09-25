@@ -62,7 +62,7 @@ jobs:
       - name: Install
         run: |
           export G2C_STATIC=True
-          export G2C_DIR=${{ github.workspace }}/g2c-${{ env.g2c_VERSION }}
+          export G2C_DIR=${{ github.workspace }}/g2c-${{ env.g2c_VERSION }}/lib
           cd $GITHUB_WORKSPACE
           pip install .[dev]
 
