@@ -1,5 +1,7 @@
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
+
 from mlglobal.ic_downloader import FileLookup
 
 

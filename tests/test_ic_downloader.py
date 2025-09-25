@@ -1,8 +1,9 @@
-import pytest
 import os
-import tempfile
 import shutil
+import tempfile
 from datetime import datetime
+
+import pytest
 from botocore.exceptions import ClientError
 
 from mlglobal.ic_downloader import ICDownloader
