@@ -41,9 +41,27 @@ class PrepareIC:
 
         return variables_to_extract
 
+
+    def get_matching_pattern(self, file, patterns, fatal=True):
+
+        matched = False
+        for pattern in file_patterns:
+            if fnmatch.fnmatch(file, os.path.join(self.data_dir, '*' + pattern)):
+                logger.debug(f"Matched pattern: {pattern} in file: {filename}")
+                matched = True
+                break
+
+        if not matched:
+            logger.error(f"No pattern matched for file: {filename}")
+            pattern = None
+            if fatal:
+                raise FileNotFoundError(f"No pattern matched for file: {filename}")
+
+        return pattern
+
     def process_files(self):
 
-        file_patterns = list(self.varinfo.keys())
+        file_patterns = list(self.varinfo['time_variant'].keys())
 
         mergeDSs = []
         for cycle in self.file_dict.keys():
@@ -56,16 +74,7 @@ class PrepareIC:
                 filename = os.path.basename(file)
                 file = os.path.join(self.data_dir, filename)
 
-                matched = False
-                for pattern in file_patterns:
-                    if fnmatch.fnmatch(file, os.path.join(self.data_dir, '*' + pattern)):
-                        logger.debug(f"Matched pattern: {pattern} in file: {filename}")
-                        matched = True
-                        break
-
-                if not matched:
-                    logger.error(f"No pattern matched for file: {filename}")  # TODO: should this raise an error?
-                    raise FileNotFoundError(f"No pattern matched for file: {filename}")
+                pattern = get_pattern(file, file_patterns)
 
                 logger.info(f"Processing {filename=}")
 

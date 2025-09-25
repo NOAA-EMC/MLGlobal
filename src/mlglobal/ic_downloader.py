@@ -49,23 +49,19 @@ class FileLookup:
     def _gefs_file_info(self):
 
         # Template for GEFS files
-        template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{self.member}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
+        template = f"gefs.{{cycle:%Y%m%d}}/{{cycle:%H}}/atmos/{{fspec_dir}}/ge{{member}}.t{{cycle:%H}}z.{{fspec}}.f{{fhour:03d}}"
 
         # From current cycle
-        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
-        pgrb2s_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
+        pgrb2_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0, member=self.member)
+        pgrb2s_0p25_f000 = template.format(cycle=self.current_cycle, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0, member=self.member)
 
         # From current cycle - 6 hours
-        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0)
-        pgrb2s_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0)
-        pgrb2s_0p25_f006_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=6)
+        pgrb2_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2p25", fspec="pgrb2.0p25", fhour=0, member=self.member)
+        pgrb2s_0p25_f000_m6 = template.format(cycle=self.current_cycle_m6h, fspec_dir="pgrb2sp25", fspec="pgrb2s.0p25", fhour=0, member=self.member)
 
         file_dict = {}
-        file_dict[self.current_cycle] = {"pgrb2.0p25.f000": pgrb2_0p25_f000,
-                                         "pgrb2s.0p25.f000": pgrb2s_0p25_f000}
-        file_dict[self.current_cycle_m6h] = {"pgrb2.0p25.f000": pgrb2_0p25_f000_m6,
-                                             "pgrb2s.0p25.f000": pgrb2s_0p25_f000_m6,
-                                             "pgrb2s.0p25.f006": pgrb2s_0p25_f006_m6}
+        file_dict[self.current_cycle] = [pgrb2_0p25_f000, pgrb2s_0p25_f000]
+        file_dict[self.current_cycle_m6h] = [pgrb2_0p25_f000_m6, pgrb2s_0p25_f000_m6]
 
         return file_dict
 
