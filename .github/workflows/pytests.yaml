@@ -40,6 +40,7 @@ jobs:
   run_pytests:
     runs-on: ubuntu-latest
     name: Install and run tests with pytests
+    needs: cache-g2c
     strategy:
       matrix:
         #python: ["3.11", "3.12", "3.13"]
