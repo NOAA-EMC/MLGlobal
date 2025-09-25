@@ -36,7 +36,8 @@ jobs:
     name: Install and run tests with pytests
     strategy:
       matrix:
-        python: ["3.11", "3.12", "3.13"]
+        #python: ["3.11", "3.12", "3.13"]
+        python: ["3.12"]  # Temporarily only test with 3.12 for faster CI
 
     steps:
       - name: Setup Python
