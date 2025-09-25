@@ -10,8 +10,15 @@ env:
 jobs:
   cache-g2c:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
     name: Build and cache g2c library
     steps:
+      - name: apt-get and install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libaec-dev libpng-dev zlib1g-dev libjpeg-dev libopenjp2-7-dev
+
       - name: Cache g2c installation
         id: cache-g2c
         uses: actions/cache@v4
