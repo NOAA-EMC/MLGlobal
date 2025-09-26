@@ -1,6 +1,6 @@
 [project]
 name = "mlglobal"
-version="0.1.0"
+version="1.0.0"
 description = "Implement Google DeepMind GenCast for ML-based Global Applications"
 readme = "README.md"
 authors = [
@@ -40,7 +40,8 @@ dependencies = [
     "scipy>=1.9.0",
     "trimesh>=3.15.0",
     "typing-extensions>=4.4.0",
-    "graphcast@git+https://github.com/google-deepmind/graphcast@6819a0f19796ca9c34a079855339b37134b8d930"
+    "grib2io>=2.5.4",
+    "graphcast@git+https://github.com/noaa-emc/graphcast@aea0678cfbd7e866e4a1d364b456861d0a03954b"
 ]
 
 [project.optional-dependencies]
@@ -48,6 +49,7 @@ gpu = ["jax[cuda12]>=0.4.1"]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0"
     "pre-commit>=4.3.0",
     "black>=24.4.2",
     "isort>=6.0.1",
@@ -70,13 +72,9 @@ notebooks = [
 requires = ["setuptools>=64.0.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
-
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = ["mlglobal"]
 
 [project.scripts]
 ic-download = "mlglobal.cli.ic_download_main:main"
-#ic-preprocess = "mlglobal.cli.gefs_preprocess_main:main"
-#graphcast-run = "mlglobal.cli.graphcast_main:main"
-#nc2grib2 = "mlglobal.cli.nc2grib2_main:main"
