@@ -99,3 +99,8 @@ dmypy.json
 
 # VSCode files
 *vscode*
+
+# Ignore grib2 and netcdf files in the repository
+*.nc*
+*grb*
+*grib2*

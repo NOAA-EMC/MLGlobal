@@ -1,3 +1,4 @@
 [submodule "graphcast"]
-	path = graphcast
-	url = https://github.com/google-deepmind/graphcast.git
+  path = graphcast
+  url = https://github.com/noaa-emc/graphcast
+  ignore = dirty
