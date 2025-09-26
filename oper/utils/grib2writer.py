@@ -145,23 +145,12 @@ class Grib2Writer:
         grib2_out_sfc.close()
         grib2_out_pres.close()
 
-        # Use wgrib2 to generate index files
-        for outfile in [outfile_sfc, outfile_pres]:
-            output_idx_file = f"{outfile}.idx"
-            
-            # Construct the wgrib2 command
-            wgrib2_command = ['wgrib2', '-s', outfile]
-            
-            try:
-                # Open the output file for writing
-                with open(output_idx_file, "w") as f_out:
-                    # Execute the wgrib2 command and redirect stdout to the output file
-                    subprocess.run(wgrib2_command, stdout=f_out, check=True)
-            
-                print(f"Index file created successfully: {output_idx_file}")
-            
-            except subprocess.CalledProcessError as e:
-                print(f"Error running wgrib2 command: {e}")
+        # Release post job to create index files and copy files to COM
+        if os.environ.get("SENDECF", "NO"):
+            SETEVENTSH = os.environ.get("SETEVENTSH")
+            cmd = [SETEVENTSH, f"{lead:03d}"]
+            print(f"Running shell subprocess {cmd}")
+            subprocess.run(cmd, check=True)
 
 if __name__ == "__main__":
     
