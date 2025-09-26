@@ -1,6 +1,6 @@
-name: NCO Bug Report
+name: Ops Bug Report
 description: Report something that is incorrect or broken
-labels: ["nco-bug"]
+labels: ["ops-bug"]
 type: "bug"
 projects: []
 assignees: []
