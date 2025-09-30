@@ -63,6 +63,18 @@ class Grib2Writer:
                 msg.typeOfEnsembleForecast = 3
                 msg.typeOfData = 4
 
+        # update decScaleFactor for specific humidity
+        # 12 for [5000, 10000]Pa, 10 for [15000, ..., 40000]Pa, 8 for [50000, ..., 100000]Pa
+        if var == "specific_humidity":
+            if level >= 5000 and level <= 10000:
+                msg.decScaleFactor = 12
+            elif level >= 15000 and level <= 40000:
+                msg.decScaleFactor = 10
+            elif level >= 50000 and level <= 100000:
+                msg.decScaleFactor = 8
+            else:
+                raise ValueError(f"level {level} Pa is not included in this model!")
+            
         # Set GRIB2 attributes unique to each iteration.
         msg.refDate = self.start_date
         msg.duration = duration
