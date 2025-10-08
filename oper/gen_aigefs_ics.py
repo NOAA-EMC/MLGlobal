@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import os
 import sys
 from time import time
@@ -46,14 +45,14 @@ class GFSDataProcessor:
         ).astype(datetime)
 
         #self.s3 = boto3.client('s3')
-        profile_name = os.environ.get('AWS_PROFILE', 'default')
-        session = boto3.Session(profile_name=profile_name)
-        current_credentials = session.get_credentials().get_frozen_credentials()
-        self.s3 = session.client(
-            's3',
-            aws_access_key_id=current_credentials.access_key,
-            aws_secret_access_key=current_credentials.secret_key,
-        )
+        #profile_name = os.environ.get('AWS_PROFILE', 'default')
+        #session = boto3.Session(profile_name=profile_name)
+        #current_credentials = session.get_credentials().get_frozen_credentials()
+        #self.s3 = session.client(
+        #    's3',
+        #    aws_access_key_id=current_credentials.access_key,
+        #    aws_secret_access_key=current_credentials.secret_key,
+        #)
     
         # Specify the S3 bucket name and root directory
         self.bucket_name = 'noaa-ncepdev-none-ca-ufs-cpldcld'
@@ -72,6 +71,8 @@ class GFSDataProcessor:
                 self.bucket_name+'_'+str(self.num_levels)+'_'+self.member_id
             )
 
+        self.local_base_directory = os.path.join(os.getcwd(), "data")
+
         # Specify the output directory where you want to save the processed files
         if self.output_directory is None:
             self.output_directory = os.path.join(os.getcwd(), self.member_id)
@@ -79,7 +80,7 @@ class GFSDataProcessor:
             self.output_directory = os.path.join(self.output_directory, self.member_id)
         os.makedirs(self.output_directory, exist_ok=True)
 
-        self.output_netcdf = os.path.join(self.output_directory, f"aigefs.t{self.cycle:02d}z.ic.nc")
+        self.output_netcdf = os.path.join(self.output_directory, f"mlgefs.t{self.cycle:02d}z.ic.nc")
 
         # List of file formats to download
         if self.num_levels == 13:     
@@ -214,7 +215,7 @@ class GFSDataProcessor:
                         
                     # Extract the specified variables with levels from the GRIB2 file
                     for level in levels:
-                        output_file = os.path.join(self.download_directory,f'{variable}_{level}_{date.hour}{file_extension}_{self.num_levels}_{self.member}.nc')
+                        output_file = f'{variable.replace(":", "")}_{level.replace(":", "")}_{date.hour}{file_extension}_{self.num_levels}_{self.member}.nc'
                         files.append(output_file)
                         
                         # Extracting levels using regular expression
@@ -612,7 +613,7 @@ if __name__ == "__main__":
         keep_downloaded_data
     )
 
-    data_processor.download_data()
+    #data_processor.download_data()
     
     if method == "wgrib2":
       data_processor.process_data_with_wgrib2()

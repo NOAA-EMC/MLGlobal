@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 '''
 Description
 @uthor: Sadegh Sadeghi Tabas (sadegh.tabas@noaa.gov)
@@ -233,13 +232,15 @@ class GFSDataProcessor:
         files = []
         print("Start extracting variables and associated levels from grib2 files:")
         # Loop through each folder (e.g., gdas.yyyymmdd)
-        date_folders = sorted(next(os.walk(data_directory))[1])
+        #date_folders = sorted(next(os.walk(data_directory))[1])
+        date_folders = [os.path.join(os.path.abspath(os.getenv("DATA")), "data")]
         for date_folder in date_folders:
-            date_folder_path = os.path.join(data_directory, date_folder)
+            #date_folder_path = os.path.join(data_directory, date_folder)
 
             # Loop through each hour (e.g., '00', '06', '12', '18')
             for hour in ['00', '06', '12', '18']:
-                subfolder_path = os.path.join(date_folder_path, hour)
+                #subfolder_path = os.path.join(date_folder_path, hour)
+                subfolder_path = date_folder
 
                 # Check if the subfolder exists before processing
                 if os.path.exists(subfolder_path):
@@ -249,7 +250,8 @@ class GFSDataProcessor:
                             levels = data['levels']
                             first_time_step_only = data.get('first_time_step_only', False)  # Default to False if not specified
 
-                            pattern = os.path.join(subfolder_path, f'gdas.t*z{file_extension}')
+                            #pattern = os.path.join(subfolder_path, f'gdas.t*z{file_extension}')
+                            pattern = os.path.join(subfolder_path, f'gfs.t{hour}z{file_extension}')
                             # Use glob to search for files matching the pattern
                             matching_files = glob.glob(pattern)
                             
@@ -259,10 +261,12 @@ class GFSDataProcessor:
                                 print("Found file:", grib2_file)
                             else:
                                 print("Error: Found multiple or no matching files.")
-                                
+                                continue                                
+
                             # Extract the specified variables with levels from the GRIB2 file
                             for level in levels:
-                                output_file = f'{variable}_{level}_{date_folder}_{hour}{file_extension}_{self.num_levels}.nc'
+                                #output_file = f'{variable}_{level}_{date_folder}_{hour}{file_extension}_{self.num_levels}.nc'
+                                output_file = f'{date_folder}/{variable.replace(":", "")}_{level.replace(":", "")}_{hour}{file_extension}_{self.num_levels}.nc'
                                 files.append(output_file)
                                 
                                 # Extracting levels using regular expression
@@ -656,7 +660,7 @@ if __name__ == "__main__":
     keep_downloaded_data = args.keep.lower() == "yes"
 
     data_processor = GFSDataProcessor(start_datetime, end_datetime, num_pressure_levels, download_source, output_directory, download_directory, keep_downloaded_data)
-    data_processor.download_data()
+    #data_processor.download_data()
     
     if method == "wgrib2":
       data_processor.process_data_with_wgrib2()
