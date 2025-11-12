@@ -136,13 +136,13 @@ class Grib2Writer:
             if "level" in da.coords.keys():
                 for level in da.coords["level"]:
                     msg = self.create_grib2_message(var, da, lead, level=level)
-                    msg.data = da.sel(level=level).values
+                    msg.data = np.squeeze(da.sel(level=level).values)
                     msg.pack()
                     print(f"\t{msg}")
                     grib2_out_pres.write(msg)
             else:
                 msg = self.create_grib2_message(var, da, lead)
-                msg.data = da.values
+                msg.data = np.squeeze(da.values)
                 msg.pack()
                 print(f"\t{msg}")
                 grib2_out_sfc.write(msg)
