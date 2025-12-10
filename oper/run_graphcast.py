@@ -9,6 +9,7 @@ Revision history:
 '''
 import os
 import argparse
+from time import time
 from datetime import timedelta
 import dataclasses
 import functools
@@ -161,11 +162,17 @@ class GraphCastModel:
 
             # Modify inputs/outputs to `graphcast.GraphCast` to handle conversion to
             # from/to float32 to/from BFloat16.
-            predictor = casting.Bfloat16Cast(predictor)
+            # NOTE: Do not use float16 for prediction. Reduced precision greatly increases run-to-run variance
+            # even without perturbed initial conditions
+            # predictor = casting.Bfloat16Cast(predictor)
 
-            # Modify inputs/outputs to `casting.Bfloat16Cast` so the casting to/from
-            # BFloat16 happens after applying normalization to the inputs/targets.
-            predictor = normalization.InputsAndResiduals(predictor, diffs_stddev_by_level=self.diffs_stddev_by_level, mean_by_level=self.mean_by_level, stddev_by_level=self.stddev_by_level,)
+            # Applying normalization to the inputs/targets.
+            predictor = normalization.InputsAndResiduals(
+                predictor, 
+                diffs_stddev_by_level=self.diffs_stddev_by_level, 
+                mean_by_level=self.mean_by_level, 
+                stddev_by_level=self.stddev_by_level,
+            )
 
             # Wraps everything so the one-step model can produce trajectories.
             predictor = autoregressive.Predictor(predictor, gradient_checkpointing=True,)
@@ -176,8 +183,11 @@ class GraphCastModel:
             predictor = construct_wrapped_graphcast(model_config, task_config)
             return predictor(inputs, targets_template=targets_template, forcings=forcings,)
         
+        t0 = time()
         jax.jit(self._with_configs(run_forward.init))
         self.model = self._drop_state(self._with_params(jax.jit(self._with_configs(run_forward.apply))))
+        elapsed_time = time() - t0
+        print(f"Elapsed time for compiling the model: {elapsed_time} seconds")
     
  
     def get_predictions(self):
@@ -280,11 +290,30 @@ if __name__ == "__main__":
     args = parser.parse_args()
     runner = GraphCastModel(args.weights, args.input, args.case_name, args.config, args.output, int(args.pressure), int(args.length))
     
+    t0 = time()
     runner.load_pretrained_model()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading model: {elapsed_time} seconds")
+
+    t0 = time()
     runner.load_gdas_data()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading input data: {elapsed_time} seconds")
+
+    t0 = time()
     runner.extract_inputs_targets_forcings()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for extracting inputs, targets, and forcings: {elapsed_time} seconds")
+
+    t0 = time()
     runner.load_normalization_stats()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading normalization stats: {elapsed_time} seconds")
+
+    t0 = time()
     runner.get_predictions()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for running the model: {elapsed_time} seconds")
     
     upload_data = args.upload.lower() == "yes"
     keep_data = args.keep.lower() == "yes"
