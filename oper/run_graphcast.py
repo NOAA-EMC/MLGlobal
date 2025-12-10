@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -u
 
 '''
 Description: Script to call the graphcast model using gdas products
@@ -21,7 +21,6 @@ import xarray
 import boto3
 import pandas as pd
 import pickle
-from absl import logging
 
 from graphcast import autoregressive
 from graphcast import casting
@@ -186,7 +185,7 @@ class GraphCastModel:
         jax.jit(self._with_configs(run_forward.init))
         self.model = self._drop_state(self._with_params(jax.jit(self._with_configs(run_forward.apply))))
         elapsed_time = time() - t0
-        logging.info(f"Elapsed time for compiling the model: {elapsed_time} seconds")
+        print(f"Elapsed time for compiling the model: {elapsed_time} seconds")
     
  
     def get_predictions(self):
@@ -292,27 +291,27 @@ if __name__ == "__main__":
     t0 = time()
     runner.load_pretrained_model()
     elapsed_time = time() - t0
-    logging.info(f"Elapsed time for loading model: {elapsed_time} seconds")
+    print(f"Elapsed time for loading model: {elapsed_time} seconds")
 
     t0 = time()
     runner.load_gdas_data()
     elapsed_time = time() - t0
-    logging.info(f"Elapsed time for loading input data: {elapsed_time} seconds")
+    print(f"Elapsed time for loading input data: {elapsed_time} seconds")
 
     t0 = time()
     runner.extract_inputs_targets_forcings()
     elapsed_time = time() - t0
-    logging.info(f"Elapsed time for extracting inputs, targets, and forcings: {elapsed_time} seconds")
+    print(f"Elapsed time for extracting inputs, targets, and forcings: {elapsed_time} seconds")
 
     t0 = time()
     runner.load_normalization_stats()
     elapsed_time = time() - t0
-    logging.info(f"Elapsed time for loading normalization stats: {elapsed_time} seconds")
+    print(f"Elapsed time for loading normalization stats: {elapsed_time} seconds")
 
     t0 = time()
     runner.get_predictions()
     elapsed_time = time() - t0
-    logging.info(f"Elapsed time for running the model: {elapsed_time} seconds")
+    print(f"Elapsed time for running the model: {elapsed_time} seconds")
     
     upload_data = args.upload.lower() == "yes"
     keep_data = args.keep.lower() == "yes"
