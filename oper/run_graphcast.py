@@ -162,9 +162,7 @@ class GraphCastModel:
 
             # Modify inputs/outputs to `graphcast.GraphCast` to handle conversion to
             # from/to float32 to/from BFloat16.
-            # NOTE: Do not use float16 for prediction. Reduced precision greatly increases run-to-run variance
-            # even without perturbed initial conditions
-            # predictor = casting.Bfloat16Cast(predictor)
+            predictor = casting.Bfloat16Cast(predictor)
 
             # Applying normalization to the inputs/targets.
             predictor = normalization.InputsAndResiduals(
