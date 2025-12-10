@@ -1,3 +1,5 @@
+#!/usr/bin/env -S python3 -u
+
 '''
 Description: Script to call the graphcast model using gdas products
 Author: Sadegh Sadeghi Tabas (sadegh.tabas@noaa.gov)
@@ -7,6 +9,7 @@ Revision history:
 '''
 import os
 import argparse
+from time import time
 from datetime import timedelta
 import dataclasses
 import functools
@@ -27,21 +30,30 @@ from graphcast import graphcast
 from graphcast import normalization
 from graphcast import rollout
 
-from utils.nc2grib import Netcdf2Grib
+from utils.grib2writer import Grib2Writer
 
 class GraphCastModel:
-    def __init__(self, pretrained_model_path, gdas_data_path, gefs_member, config_file, output_dir=None, num_pressure_levels=13, forecast_length=40):
+    def __init__(
+        self, 
+        pretrained_model_path, 
+        gdas_data_path, 
+        case_name: str, 
+        config_file = None, 
+        output_dir = None, 
+        num_pressure_levels = 13, 
+        forecast_length = 64,
+    ):
         self.pretrained_model_path = pretrained_model_path
         self.gdas_data_path = gdas_data_path
         self.forecast_length = forecast_length
+        self.case_name = case_name
         self.num_pressure_levels = num_pressure_levels
-        self.gefs_member = gefs_member
         self.config_file_path = config_file
         
         if output_dir is None:
-            self.output_dir = os.path.join(os.getcwd(), f"forecasts_{str(self.num_pressure_levels)}_levels_{self.gefs_member}_model_{int(gefs_member[1:])}")  # Use current directory if not specified
+            self.output_dir = os.getcwd()
         else:
-            self.output_dir = os.path.join(output_dir, f"forecasts_{str(self.num_pressure_levels)}_levels_{self.gefs_member}_model_{int(gefs_member[1:])}")
+            self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         
         self.params = None
@@ -62,18 +74,24 @@ class GraphCastModel:
     def load_pretrained_model(self):
         """Load pre-trained GraphCast model."""
         if self.num_pressure_levels==13:
-            model_weights_path = f"{self.pretrained_model_path}/params/GraphCast_operational - ERA5-HRES 1979-2021 - resolution 0.25 - pressure levels 13 - mesh 2to6 - precipitation output only.npz"
+            model_weights_path = f"{self.pretrained_model_path}/params/GCGFSv2_finetuned_GDAS-ERA5_0p25_13pl_mesh2to6_tp_output_only.npz"
         else:
-            model_weights_path = f"{self.pretrained_model_path}/params/GraphCast - ERA5 1979-2017 - resolution 0.25 - pressure levels 37 - mesh 2to6 - precipitation input and output.npz"
+            model_weights_path = f"{self.pretrained_model_path}/params/GraphCast_ERA5_1979-2017_0p25_37pl_mesh2to6_tp-input-and-output.npz"
 
         with open(model_weights_path, "rb") as f:
             ckpt = checkpoint.load(f, graphcast.CheckPoint)
-            # self.params = ckpt.params
+            #self.params = ckpt.params
             self.state = {}
             self.model_config = ckpt.model_config
             self.task_config = ckpt.task_config
-            with open(self.config_file_path, 'rb') as f:
-                self.params = pickle.load(f)
+
+            #update params
+            if self.config_file_path is not None:
+                print(f'Loading params for member {self.case_name}')
+                with open(self.config_file_path, 'rb') as f:
+                    self.params = pickle.load(f)
+            else:
+                self.params = ckpt.params
 
     def load_gdas_data(self):
         """Load GDAS data."""
@@ -146,9 +164,13 @@ class GraphCastModel:
             # from/to float32 to/from BFloat16.
             predictor = casting.Bfloat16Cast(predictor)
 
-            # Modify inputs/outputs to `casting.Bfloat16Cast` so the casting to/from
-            # BFloat16 happens after applying normalization to the inputs/targets.
-            predictor = normalization.InputsAndResiduals(predictor, diffs_stddev_by_level=self.diffs_stddev_by_level, mean_by_level=self.mean_by_level, stddev_by_level=self.stddev_by_level,)
+            # Applying normalization to the inputs/targets.
+            predictor = normalization.InputsAndResiduals(
+                predictor, 
+                diffs_stddev_by_level=self.diffs_stddev_by_level, 
+                mean_by_level=self.mean_by_level, 
+                stddev_by_level=self.stddev_by_level,
+            )
 
             # Wraps everything so the one-step model can produce trajectories.
             predictor = autoregressive.Predictor(predictor, gradient_checkpointing=True,)
@@ -159,8 +181,11 @@ class GraphCastModel:
             predictor = construct_wrapped_graphcast(model_config, task_config)
             return predictor(inputs, targets_template=targets_template, forcings=forcings,)
         
+        t0 = time()
         jax.jit(self._with_configs(run_forward.init))
         self.model = self._drop_state(self._with_params(jax.jit(self._with_configs(run_forward.apply))))
+        elapsed_time = time() - t0
+        print(f"Elapsed time for compiling the model: {elapsed_time} seconds")
     
  
     def get_predictions(self):
@@ -169,22 +194,6 @@ class GraphCastModel:
         print (f"start running GraphCast for {self.forecast_length} steps --> {self.forecast_length*6} hours.")
         self.load_model()
            
-        # output = self.model(self.model ,rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
-        forecasts = rollout.chunked_prediction(self.model, rng=jax.random.PRNGKey(0), inputs=self.inputs, targets_template=self.targets * np.nan, forcings=self.forcings,)
-        
-        filename = f"forecasts_levels-{self.num_pressure_levels}_steps-{self.forecast_length}.nc"
-        output_netcdf = os.path.join(self.output_dir, filename)
-        
-        # save forecasts
-        #forecasts.to_netcdf(output_netcdf)
-        #print (f"GraphCast run completed successfully, you can find the GraphCast forecasts in the following directory:\n {output_netcdf}")
-
-        self.save_grib2(forecasts)
-
-    def save_grib2(self, forecasts):
-
-        converter = Netcdf2Grib()
-
         # Call and save f000 in grib2
         ds = self.current_batch
         ds = ds.drop_vars(['geopotential_at_surface','land_sea_mask', 'total_precipitation_6hr'])
@@ -194,12 +203,23 @@ class GraphCastModel:
         ds = ds.isel(time=slice(1, 2))
         ds['time'] = ds['time'] - pd.Timedelta(hours=6)
 
-        converter.save_grib2(self.dates, ds, self.gefs_member, self.output_dir)
+        converter = Grib2Writer(
+            self.dates[0][1], 
+            case_name=self.case_name, 
+            json_path=f'{self.pretrained_model_path}/tables'
+        )
+        converter.save_grib2(ds, self.output_dir)
 
-        # Call and save forecasts in grib2
-        converter.save_grib2(self.dates, forecasts, self.gefs_member, self.output_dir)
-        
-    
+        rollout.chunked_prediction(
+            self.output_dir, 
+            converter, 
+            self.model, 
+            rng=jax.random.PRNGKey(0), 
+            inputs=self.inputs, 
+            targets_template=self.targets * np.nan, 
+            forcings=self.forcings,
+        )
+
     def upload_to_s3(self, keep_data):
         s3 = boto3.client('s3')
         
@@ -257,21 +277,41 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", help="input file path (including file name)", required=True)
     parser.add_argument("-w", "--weights", help="parent directory of the graphcast params and stats", required=True)
     parser.add_argument("-l", "--length", help="length of forecast (6-hourly), an integer number in range [1, 40]", required=True)
-    parser.add_argument("-m", "--member", help="gefs member [c00, p01, ..., p30]", required=True)
-    parser.add_argument("-c", "--config", help="GC weight member file", required=True)
+    parser.add_argument("-n", "--case_name", help="aigfs, or gefs member [aigec00, aigep01, ..., aigep30]", required=True)
+    #parser.add_argument("-c", "--config", help="GC weight member file", required=True)
+    parser.add_argument("-c", "--config", help="GC weight member file", default=None)
     parser.add_argument("-o", "--output", help="output directory", default=None)
     parser.add_argument("-p", "--pressure", help="number of pressure levels", default=13)
     parser.add_argument("-u", "--upload", help="upload input data as well as forecasts to noaa s3 bucket (yes or no)", default = "no")
     parser.add_argument("-k", "--keep", help="keep input and output after uploading to noaa s3 bucket (yes or no)", default = "no")
     
     args = parser.parse_args()
-    runner = GraphCastModel(args.weights, args.input, args.member, args.config, args.output, int(args.pressure), int(args.length))
+    runner = GraphCastModel(args.weights, args.input, args.case_name, args.config, args.output, int(args.pressure), int(args.length))
     
+    t0 = time()
     runner.load_pretrained_model()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading model: {elapsed_time} seconds")
+
+    t0 = time()
     runner.load_gdas_data()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading input data: {elapsed_time} seconds")
+
+    t0 = time()
     runner.extract_inputs_targets_forcings()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for extracting inputs, targets, and forcings: {elapsed_time} seconds")
+
+    t0 = time()
     runner.load_normalization_stats()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for loading normalization stats: {elapsed_time} seconds")
+
+    t0 = time()
     runner.get_predictions()
+    elapsed_time = time() - t0
+    print(f"Elapsed time for running the model: {elapsed_time} seconds")
     
     upload_data = args.upload.lower() == "yes"
     keep_data = args.keep.lower() == "yes"

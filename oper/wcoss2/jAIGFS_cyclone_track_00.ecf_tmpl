@@ -1,0 +1,82 @@
+#!/bin/bash
+
+#PBS -o aigfs_tracker.out
+#PBS -e aigfs_tracker.err
+#PBS -N aigfs_tracker
+#PBS -A GFS-DEV
+#PBS -q dev
+#PBS -W depend=afterok:jobid
+#PBS -l place=vscatter,select=1:ncpus=1:mpiprocs=1:mem=10G
+#PBS -l place=excl
+#PBS -l walltime=00:30:00
+
+#%include <head.h> 
+#%include <envir-p2.h>
+
+export clustername=wcoss2
+export PACKAGEROOT=/lfs/h2/emc/nems/noscrub/linlin.cui/git/LinlinCui-NOAA/TC_tracker
+module use $PACKAGEROOT/modulefiles
+module load $clustername.lua
+module list
+
+set -x
+export envir=dev
+
+export DATAROOT=/lfs/h2/emc/ptmp/$USER
+export COMROOT=$DATAROOT/com/aigfs
+export KEEPDATA=NO
+
+# experiment configurations:
+#export PDY=$1
+#export cyc=$2
+#export pert=$3
+export job=aigfs_track_$cyc
+#member: EAGLE_SOLO:"", EAGLE_ENSEMBLE:c00, p01, ... , p30, weight: 0, 1, 2, ..., 30
+# EAGLE SOLO:
+#export pert=""
+#export modelversion=""
+# EAGLE ensemble
+#modelname has to be 4 letters, EAGLE_SOLO:MGFS/MGFT, EAGLE_ENSEMBLE:MC00, MP01, ..., MP30
+if [ "$pert" = "" ]; then
+   export COMINgfs=$DATAROOT/aigfs.$PDY
+   export ensmemble=""
+   export fileprefix=aigfs
+   if [ "$modelversion" = "" ]; then
+       export modelname="MGFS"
+   elif [ "$modelversion" = "_test" ]; then
+       export modelname="MGFT"
+   fi
+else
+   export COMINgfs=$DATAROOT/aigefs.$PDY
+   export ensmember=""
+   export fileprefix=ai$pert
+   export modelname="M"$(echo "$pert" | tr '[:lower:]' '[:upper:]')
+fi
+#model history files
+export COMINsyn=/lfs/h1/ops/prod/com/gfs/v16.3/syndat
+
+# CALL executable job script here
+$PACKAGEROOT/jobs/JAIGFS_CYCLONE_TRACK
+
+if [ $? -ne 0 ]; then
+  echo "tracker run FAILED"
+  exit
+else
+  echo "tracker run FINISHED"
+fi
+
+#%include <tail.h> 
+#%manual
+######################################################################
+#PURPOSE:  Executes the job that creates GFS TC track forecasts
+######################################################################
+
+######################################################################
+# Job specific troubleshooting instructions:
+#  see generic troubleshoot manual page
+#
+######################################################################
+
+# include manual page below
+#%end
+

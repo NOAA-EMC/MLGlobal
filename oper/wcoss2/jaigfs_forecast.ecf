@@ -1,0 +1,43 @@
+#!/bin/bash
+
+#PBS -o aigfs.out
+#PBS -e aigfs.err
+#PBS -N aigfs
+#PBS -A GFS-DEV
+#PBS -q dev
+#PBS -l place=vscatter,select=1:ncpus=80:mpiprocs=80:mem=500G
+#PBS -l place=excl
+#PBS -l walltime=02:00:00
+
+set -eux
+echo -n " $( date +%s )," >  job_timestamp.txt
+
+# load necessary modules
+module load PrgEnv-intel intel python
+module load wgrib2
+module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+module load aigfs/1.0
+module list
+pip list
+
+#PDY=$1
+#cyc=$2
+
+#model_weights=/lfs/h2/emc/nems/noscrub/jun.wang/mlwp/aiml/gc_weights
+model_weights=/lfs/h2/emc/nems/noscrub/linlin.cui/Tests/eagle_ensemble/model_weights
+DATAROOT=/lfs/h2/emc/ptmp/$USER
+curr_datetime=$PDY$cyc
+
+cd /lfs/h2/emc/nems/noscrub/linlin.cui/git/others/MLGlobal/oper/wcoss2 
+
+start_time=$(date +%s)
+echo "start runing graphcast to get real time 16-days forecasts for: $curr_datetime"
+
+# Run another Python script
+python3 run_graphcast.py -i $DATAROOT/aigfs.$PDY/$cyc/aigfs.t"$cyc"z.ic.nc -w $model_weights -n aigfs -l 64 -p 13 -o $DATAROOT/aigfs.$PDY/$cyc -u no -k yes 
+
+end_time=$(date +%s)  # Record the end time in seconds since the epoch
+
+# Calculate and print the execution time
+execution_time=$((end_time - start_time))
+echo "Execution time for graphcast: $execution_time seconds"

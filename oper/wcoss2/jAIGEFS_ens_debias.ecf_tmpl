@@ -1,0 +1,60 @@
+#!/bin/bash
+#PBS -N aigefs_ens_debias
+#PBS -j oe                  
+#PBS -q dev  
+#PBS -W depend=afterok:{jobid}
+#PBS -l walltime=01:00:00
+#PBS -A GFS-DEV                
+#PBS -l select=1:ncpus=97:mpiprocs=97:mem=100GB
+#PBS -l debug=true
+
+# versions file for naefs sets $naefs_ver and $code_ver
+model=aigefs
+
+## HOMEnaefs will de defined by the eclfow apps
+
+export HOMEaigefs=/lfs/h2/emc/nems/noscrub/$USER/git/LinlinCui-NOAA/avgspr
+source $HOMEaigefs/versions/run.ver
+
+cd $PBS_O_WORKDIR
+
+set -x
+
+module purge
+module load envvar/$envvar_ver
+module load PrgEnv-intel/$PrgEnv_intel_ver
+module load craype/$craype_ver
+module load intel/$intel_ver
+module load cray-mpich/$cray_mpich_ver
+module load cray-pals/$cray_pals_ver
+module load cfp/$cfp_ver
+module load prod_envir/$prod_envir_ver
+module load prod_util/$prod_util_ver
+module load libjpeg/$libjpeg_ver
+module load grib_util/$grib_util_ver
+module load wgrib2/$wgrib2_ver
+module load iobuf/$iobuf_ver
+module load craype-hugepages2M
+module list
+
+##
+
+export PDY={PDY}
+export cyc={cyc}
+export job=aigefs_ens_debia_$PDY$cyc
+
+export DATAROOT=/lfs/h2/emc/ptmp/$USER
+export KEEPDATA=NO
+
+# EXPORT list here
+
+export export OMP_NUM_THREADS=1
+export APRUN="mpiexec -np 97 --cpu-bind core cfp "         
+export IOBUF_PARAMS='*:sync,%%stdout:sync'
+
+export COMROOT=/lfs/h2/emc/ptmp/$LOGNAME/com
+export DCOMROOT=/lfs/h2/emc/ptmp/$LOGNAME
+
+# CALL executable job script here
+$HOMEaigefs/jobs/JAIGEFS_ENS_DEBIAS
+

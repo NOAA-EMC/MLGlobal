@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# load necessary modules
+module load PrgEnv-intel intel python
+module load wgrib2
+module use /lfs/h2/emc/eib/noscrub/rahul.mahajan/eibWork/eagleWork/pyvenv/modulefiles
+module load aigfs/1.0
+module list
+
+curr_datetime=${1:-2025090918}
+prev_datetime=${2:-2025090912}
+PACKAGEROOT=${3:-/lfs/h2/emc/nems/noscrub/linlin.cui/git/others/MLGlobal}
+
+MACHINE=wcoss2
+DATAROOT=/lfs/h2/emc/ptmp/$USER
+
+cd $PACKAGEROOT/oper/wcoss2
+
+PYD=$(echo $curr_datetime | cut -c1-8)
+cyc=$(echo $curr_datetime | cut -c9-10)
+num_pressure_levels=13
+echo $prev_datetime
+echo $PYD
+echo $cyc
+
+start_time=$(date +%s)
+echo "start generating graphcast inputs for: $curr_datetime"
+# Run the Python script gdas.py with the calculated times
+python3 gen_aigfs_ics.py "$prev_datetime" "$curr_datetime" -l "$num_pressure_levels" -o $DATAROOT/aigfs."$PYD"/"$cyc"
+ 
+end_time=$(date +%s)  # Record the end time in seconds since the epoch
+
+# Calculate and print the execution time
+execution_time=$((end_time - start_time))
+echo "Execution time for gen_aigfs_ics.py: $execution_time seconds"

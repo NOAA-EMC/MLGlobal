@@ -1,4 +1,4 @@
-name: graphcast
+name: condaenv
 channels:
   - conda-forge
 dependencies:
@@ -7,13 +7,11 @@ dependencies:
   - netcdf4
   - xarray
   - cartopy
-  - pygrib
-  - eccodes
-  - scitools-iris
-  - iris-grib
   - jupyterlab
   - boto3
+  - nceplibs-g2c
+  - grib2io
   - pip
   - pip:
-    - https://github.com/deepmind/graphcast/archive/master.zip
+    - git+https://github.com/noaa-emc/graphcast@aea0678cfbd7e866e4a1d364b456861d0a03954b
     - flax

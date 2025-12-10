@@ -1,35 +1,80 @@
 [project]
-name = "mlgefs"
-version="0.1.0"
-description = "Implement Google DeepMind GenCast for Global Ensemble Forecast System (GEFS)"
+name = "mlglobal"
+version="1.0.0"
+description = "Implement Google DeepMind GenCast for ML-based Global Applications"
+readme = "README.md"
 authors = [
 {name="Linlin Cui", email="linlin.cui@noaa.gov"},
 {name="Jun Wang", email="jun.wang@noaa.gov"},
 {name="Sadegh Tabas"},
 ]
-license = {file = "LICENSE.txt"}
-requires-python = ">=3.11, <3.13"
+license = {file = "LICENSE.md"}
+requires-python = ">=3.11, <3.14"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Earth Science",
+    "License :: OSI Approved :: Creative Commons Zero",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+keywords = ["weather forecasting", "machine learning", "GraphCast", "GFS", "GEFS", "ensemble prediction"]
 dependencies = [
-    "numpy",
-    "matplotlib",
-    "xarray",
-    "netCDF4",
-    "cartopy",
-    "pygrib",
-    "eccodes",
-    "iris",
-    "iris-grib",
-    "jupyterlab",
-    "dm-tree",
-    "boto3",
+    "numpy>=1.21.0",
+    "matplotlib>=3.5.0",
+    "xarray>=2022.6.0",
+    "netCDF4>=1.6.0",
+    "cartopy>=0.21.0",
+    "jupyterlab>=3.4.0",
+    "dm-tree>=0.1.7",
+    "jax>=0.4.1",
+    "jaxlib>=0.4.1",
+    "dm-haiku>=0.0.9",
+    "chex>=0.1.5",
+    "jraph>=0.0.6.dev0",
+    "flax>=0.6.0",
+    "pandas>=1.5.0",
+    "scipy>=1.9.0",
+    "trimesh>=3.15.0",
+    "typing-extensions>=4.4.0",
+    "grib2io>=2.5.4",
+    "graphcast@git+https://github.com/noaa-emc/graphcast@aea0678cfbd7e866e4a1d364b456861d0a03954b"
+]
+
+[project.optional-dependencies]
+gpu = ["jax[cuda12]>=0.4.1"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pre-commit>=4.3.0",
+    "black>=24.4.2",
+    "isort>=6.0.1",
+    "flake8>=7.1.0",
+    "mypy>=0.991",
+    "boto3>=1.26.0",
+]
+notebooks = [
+    "jupyter>=1.0.0",
+    "ipywidgets>=8.0.0",
 ]
 
 [project.urls]
-source="https://github.com/NOAA-EMC/MLGEFS"
+"Homepage" = "https://github.com/NOAA-EMC/mlglobal"
+"Bug Reports" = "https://github.com/NOAA-EMC/mlglobal/issues"
+"Source" = "https://github.com/NOAA-EMC/mlglobal"
+"Documentation" = "https://github.com/NOAA-EMC/mlglobal/blob/main/README.md"
 
 [build-system]
 requires = ["setuptools>=64.0.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["mlgefs"]
+package-dir = {"" = "src"}
+packages = ["mlglobal"]
+
+[project.scripts]
+ic-download = "mlglobal.cli.ic_download_main:main"
