@@ -62,9 +62,9 @@ class GFSDataProcessor:
 
         # List of file formats to download
         if self.num_levels == 13:     
-            self.file_formats = ['pgrb2.0p25.f000', 'pgrb2.0p25.f006'] # , '0p25.f001'
+            self.file_formats = ['pres_a.0p25.f000.grib2', 'pres_a.0p25.f006.grib2'] # , '0p25.f001'
         else:
-            self.file_formats = ['pgrb2.0p25.f000', 'pgrb2b.0p25.f000', 'pgrb2.0p25.f006'] # , '0p25.f001'
+            self.file_formats = ['pres_a.0p25.f000.grib2', 'pres_b.0p25.f000.grib2', 'pres_a.0p25.f006.grib2'] # , '0p25.f001'
     
     def s3bucket(self, date_str, time_str, local_directory):
         # Construct the S3 prefix for the directory
@@ -193,7 +193,7 @@ class GFSDataProcessor:
 
         # Create a dictionary to specify the variables, levels, and whether to extract only the first time step (if needed)
         variables_to_extract = {
-            '.pgrb2.0p25.f000': {
+            '.pres_a.0p25.f000.grib2': {
                 ':HGT:': {
                     'levels': [':surface:'],
                     'first_time_step_only': True,  # Extract only the first time step
@@ -211,7 +211,7 @@ class GFSDataProcessor:
                     'levels': [':(50|100|150|200|250|300|400|500|600|700|850|925|1000) mb:'],
                 },
             },
-            '.pgrb2.0p25.f006': {
+            '.pres_a.0p25.f006.grib2': {
                 ':LAND:': {
                     'levels': [':surface:'],
                     'first_time_step_only': True,  # Extract only the first time step
@@ -222,10 +222,10 @@ class GFSDataProcessor:
             }
         }
         if self.num_levels == 37:
-            variables_to_extract['.pgrb2.0p25.f000'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:']['levels'] = [':(1|2|3|5|7|10|20|30|50|70|100|150|200|250|300|350|400|450|500|550|600|650|700|750|800|850|900|925|950|975|1000) mb:']
-            variables_to_extract['.pgrb2b.0p25.f000'] = {}
-            variables_to_extract['.pgrb2b.0p25.f000'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:'] = {}
-            variables_to_extract['.pgrb2b.0p25.f000'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:']['levels'] = [':(125|175|225|775|825|875) mb:']
+            variables_to_extract['.pres_a.0p25.f000.grib2'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:']['levels'] = [':(1|2|3|5|7|10|20|30|50|70|100|150|200|250|300|350|400|450|500|550|600|650|700|750|800|850|900|925|950|975|1000) mb:']
+            variables_to_extract['.pres_b.0p25.f000.grib2'] = {}
+            variables_to_extract['.pres_b.0p25.f000.grib2'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:'] = {}
+            variables_to_extract['.pres_b.0p25.f000.grib2'][':SPFH|VVEL|VGRD|UGRD|HGT|TMP:']['levels'] = [':(125|175|225|775|825|875) mb:']
        
         # Create an empty list to store the extracted datasets
         extracted_datasets = []
@@ -376,7 +376,7 @@ class GFSDataProcessor:
 
         #Get time-varying variables
         variables_to_extract = {
-            '.pgrb2.0p25.f000': {
+            '.pres_a.0p25.f000.grib2': {
                 'TMP': {
                     'level': ['2 m above ground'],
                 },
@@ -394,7 +394,7 @@ class GFSDataProcessor:
                     ],
                 },
             },
-            '.pgrb2.0p25.f006': {
+            '.pres_a.0p25.f006.grib2': {
                 'APCP': {  # total precipitation 
                     'level': ['surface'],
                 },
@@ -402,14 +402,14 @@ class GFSDataProcessor:
         }
 
         if self.num_levels == 37:
-            variables_to_extract['.pgrb2.0p25.f000']['w, u, v, q, t, gh']['level'] = [
+            variables_to_extract['.pres_a.0p25.f000.grib2']['w, u, v, q, t, gh']['level'] = [
                 1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 
                 100, 150, 200, 250, 300, 350, 400,
                 450, 500, 550, 600, 650, 700, 750,
                 800, 850, 900, 925, 950, 975, 1000,
             ]
             extra_levels = [125, 175, 225, 775, 825, 875]
-            file_extension_2b = '.pgrb2b.0p25.f000'
+            file_extension_2b = '.pres_b.0p25.f000.grib2'
 
         # Create an empty list to store the extracted datasets
         mergeDSs = []
