@@ -74,7 +74,7 @@ class GraphCastModel:
     def load_pretrained_model(self):
         """Load pre-trained GraphCast model."""
         if self.num_pressure_levels==13:
-            model_weights_path = f"{self.pretrained_model_path}/params/GCGFSv2_finetuned_GDAS-ERA5_0p25_13pl_mesh2to6_tp_output_only.npz"
+            model_weights_path = f"{self.pretrained_model_path}/params/AIGFSv1.1.npz"
         else:
             model_weights_path = f"{self.pretrained_model_path}/params/GraphCast_ERA5_1979-2017_0p25_37pl_mesh2to6_tp-input-and-output.npz"
 
