@@ -1,0 +1,37 @@
+dates:
+  start: 2021-04-01T00:00:00
+  end: 2026-03-31T18:00:00
+  frequency: 6h
+
+input:
+  join:
+    - xarray-zarr:
+        url: gfs-1p00-13pl-20210401-20260331-6h-combined-v4.zarr
+
+    - constants:
+        template: ${input.join.0.xarray-zarr}
+        param:
+          - cos_julian_day
+          - cos_latitude
+          - cos_local_time
+          - cos_longitude
+          - insolation
+          - sin_julian_day
+          - sin_latitude
+          - sin_local_time
+          - sin_longitude
+
+build:
+  group_by: daily
+
+statistics:
+  start: 2021-04-01 00:00:00
+  end: 2024-03-31 18:00:00
+  #tendencies: [6h, 12h]
+  allow_nans:
+    - ro
+    - sf
+    - stl1
+    - stl2
+    - swvl1
+    - swvl1 

@@ -1,0 +1,7 @@
+step1: using ufs2arco to download [instant, accum, soil, snowfall] and save to zarr files: [time, level, lat, lon]
+[gfs.1p00.accum.yaml  gfs.1p00.instant.yaml  gfs.1p00.sf.yaml  gfs.1p00.soil.yam]l
+
+step2: use combine_gfs_zarr.py to process downloaded zarr files and save to a single zarr file
+
+step3: modify recipe_gfs_local_1p.yaml and run job_create_anemoi_dataset.sh to create anemoi-format dataset
+

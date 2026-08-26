@@ -1,0 +1,56 @@
+mover:
+  name: mpidatamover
+
+directories:
+  zarr: gfs-1p00-13pl-20210401-20260331-6h-accum.zarr
+  cache: cache/1p00/tp/cache
+  logs: logs/1p00/tp
+
+source:
+  name: gfs_archive
+  t0:
+    start: 2021-03-31T18
+    end: 2026-03-31T12
+    freq: 6h
+
+  fhr:
+    start: 6
+    end: 6
+    step: 1
+
+  resolution: 1p00
+
+  variables:
+    # 2D Atmospheric Variables
+    - accum_tp
+    - accum_acpcp
+    - accum_watr
+    - avg_sdswrf
+    - avg_sdlwrf
+
+transforms:
+  multiply:   # Wm^-2 -> J^m-2 (6*60*60)
+    avg_sdswrf: 21600
+    avg_sdlwrf: 21600
+  divide:     #convert accumulated tp from kg/m^2 to m
+    accum_tp: 1000
+    accum_acpcp: 1000
+    accum_watr: 1000
+
+target:
+  name: forecast
+  rename:
+    accum_tp: tp
+    accum_acpcp: cp
+    accum_watr: ro
+    avg_sdswrf: ssrd
+    avg_sdlwrf: strd
+
+  chunks:
+    t0: 1
+    fhr: 1
+    latitude: -1
+    longitude: -1
+
+attrs:
+  description: "NOAA GFS archived on AWS"

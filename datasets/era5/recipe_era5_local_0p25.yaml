@@ -1,0 +1,66 @@
+dates:
+  start: 1979-01-01T00:00:00
+  end: 2025-12-31T18:00:00
+  frequency: 6h
+
+# era5_0p25_6h_1979_1989.zarr  era5_0p25_6h_1990_2000.zarr  era5_0p25_6h_2001_2010.zarr  era5_0p25_6h_2011_2025.zarr
+input:
+  pipe:
+    - join:
+      - concat:
+        - dates:
+            start: 1979-01-01T00:00:00
+            end: 1989-12-31T18:00:00
+            frequency: 6h
+          xarray-zarr:
+            url: era5_subset_new/era5_0p25_6h_1979_1989.zarr
+
+        - dates:
+            start: 1990-01-01T00:00:00
+            end: 2000-12-31T18:00:00
+            frequency: 6h
+          xarray-zarr:
+            url: era5_subset_new/era5_0p25_6h_1990_2000.zarr
+          
+        - dates:
+            start: 2001-01-01T00:00:00
+            end: 2010-12-31T18:00:00
+            frequency: 6h
+          xarray-zarr:
+            url: era5_subset_new/era5_0p25_6h_2001_2010.zarr
+
+        - dates:
+            start: 2011-01-01T00:00:00
+            end: 2025-12-31T18:00:00
+            frequency: 6h
+          xarray-zarr:
+            url: era5_subset_new/era5_0p25_6h_2011_2025.zarr
+
+        #- dates:
+        #    start: 2020-01-01T00:00:00
+        #    end: 2025-12-31T18:00:00
+        #    frequency: 6h
+        #  xarray-zarr:
+        #    url: era5_subset/era5_0p25_6h_2020_2025.zarr
+
+      - constants:
+          #template: ${input.pipe.0.join.0.xarray-zarr}
+          template: ${input.pipe.0.join.0.concat}
+          param:
+            - cos_julian_day
+            - cos_latitude
+            - cos_local_time
+            - cos_longitude
+            - insolation
+            - sin_julian_day
+            - sin_latitude
+            - sin_local_time
+            - sin_longitude
+
+build:
+  group_by: daily
+
+statistics:
+  start: 1979-01-01 00:00:00
+  end: 2022-12-31 18:00:00
+  tendencies: [6h, 12h]

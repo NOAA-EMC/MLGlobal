@@ -1,0 +1,43 @@
+mover:
+  name: mpidatamover
+
+directories:
+  zarr: gdas-1p00-13pl-20210401-20260331-6h-soil.zarr
+  cache: cache/1p00/cache/soil
+  logs: logs/1p00/soil
+
+source:
+  name: gfs_archive
+  t0:
+    start: 2021-04-01T00
+    end: 2026-03-31T18
+    freq: 6h
+
+  fhr:
+    start: 0
+    end: 0
+    step: 1
+
+  resolution: 1p00
+
+  variables:
+    # 2D Atmospheric Variables
+    - soill
+    - st
+
+target:
+  name: forecast
+  rename:
+    soill: swvl1
+    st: stl1
+    
+
+  chunks:
+    t0: 1
+    fhr: 1
+    depthBelowLandLayer: -1
+    latitude: -1
+    longitude: -1
+
+attrs:
+  description: "NOAA GFS archived on AWS"

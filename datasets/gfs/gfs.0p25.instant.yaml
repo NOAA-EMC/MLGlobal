@@ -1,0 +1,100 @@
+mover:
+  name: mpidatamover
+
+directories:
+  zarr: gfs-0p25-13pl-20210401-20260331-6h-instant.zarr
+  cache: cache/0p25/cache
+  logs: logs/0p25
+
+source:
+  name: gfs_archive
+  t0:
+    start: 2021-04-01T00
+    end: 2026-03-31T18
+    freq: 6h
+
+  fhr:
+    start: 0
+    end: 0
+    step: 1
+
+  resolution: 0p25 
+
+  variables:
+    # 2D Atmospheric Variables
+    - t2m
+    - d2m
+    - u10
+    - v10
+    - prmsl
+    - sp
+    - t_surface
+    - u100
+    - v100
+    - lcc
+    - mcc
+    - hcc
+    - tcc
+    - tcwv
+    #- sdwe #Water equivalent of accumulated snow depth (deprecated)
+    # 3D Atmospheric Variables
+    - t
+    - q
+    - u
+    - v
+    - gh
+    - w
+    # Static Variables
+    - lsm
+    - orog
+
+  levels:
+    - 50
+    - 100
+    - 150
+    - 200
+    - 250
+    - 300
+    - 400
+    - 500
+    - 600
+    - 700
+    - 850
+    - 925
+    - 1000  
+
+transforms:
+  multiply:   #geopotential height to geopotential
+    gh: 9.80665
+    orog: 9.80665
+  divide:
+    lcc: 100 #fraction
+    mcc: 100
+    hcc: 100
+    tcc: 100
+    #sdwe: 1000 #kg/m^2 to m
+  
+
+target:
+  name: forecast
+  rename:
+    t2m: 2t
+    d2m: 2d
+    u10: 10u
+    v10: 10v
+    u100: 100u
+    v100: 100v
+    prmsl: msl 
+    t_surface: skt
+    #sdwe: sf
+    gh: z
+
+  chunks:
+    t0: 1
+    fhr: 1
+    level: -1
+    latitude: -1
+    longitude: -1
+
+attrs:
+  description: "NOAA GFS archived on AWS"

@@ -1,0 +1,44 @@
+mover:
+  name: mpidatamover
+
+directories:
+  zarr: gfs-0p25-13pl-20260101-20260331-6h-snowfall.zarr
+  cache: cache/0p25/sf
+  logs: logs/0p25/sf
+
+source:
+  name: gfs_archive
+  t0:
+    start: 2026-01-01T00
+    end: 2026-03-31T18
+    freq: 6h
+
+  fhr:
+    start: 0
+    end: 6
+    step: 1
+
+  resolution: 0p25
+
+  variables:
+    # 2D Atmospheric Variables
+    - sdwe #Water equivalent of accumulated snow depth (deprecated)
+
+transforms:
+  divide:
+    sdwe: 1000 #kg/m^2 to m
+  
+
+target:
+  name: forecast
+  rename:
+    sdwe: sf
+
+  chunks:
+    t0: 1
+    fhr: 1
+    latitude: -1
+    longitude: -1
+
+attrs:
+  description: "NOAA GFS archived on AWS"

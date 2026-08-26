@@ -1,0 +1,63 @@
+dates:
+  start: 1979-01-01T00:00:00
+  end: 2025-12-31T18:00:00
+  frequency: 6h
+
+input:
+  join:
+    - netcdf:
+        path: era5_subset_1deg_new/era5_1deg_6h_*.nc
+        param:
+          - 10u
+          - 10v
+          - 2t
+          - 2d
+          - msl
+          - tp
+          - cp
+          - 100u
+          - 100v
+          - sp
+          - skt
+          - tcc
+          - hcc
+          - mcc
+          - lcc
+          - tcwv
+          - swvl1
+          - swvl2
+          - stl1
+          - stl2
+          - ro
+          - sf
+          - ssrd
+          - strd
+          - slor
+          - sdor
+          - orog
+          - lsm
+          - u
+          - v
+          - w
+          - t
+          - q
+          - z
+
+    - constants:
+       template: ${input.join.0.netcdf}
+       param:
+         - cos_julian_day
+         - cos_latitude
+         - cos_local_time
+         - cos_longitude
+         - insolation
+         - sin_julian_day
+         - sin_latitude
+         - sin_local_time
+         - sin_longitude
+build:
+  group_by: daily
+
+statistics:
+  start: 1979-01-01 00:00:00
+  end: 2022-12-31 18:00:00
